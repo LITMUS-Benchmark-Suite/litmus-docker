@@ -6,7 +6,7 @@
 
 #All the queries have to be written in the SparkseeQuery.groovy file itself.
 
-../../gremlin-groovy/bin/gremlin.sh -e ../groovy_scripts/Neo4jQuery.groovy $2 $3 $1 >> $4
+/gremlin-groovy/bin/gremlin.sh -e /scripts/neo4j/Neo4jQuery.groovy $2 $3 $1 >> $4
 
 # Example Run
 # ./Neo4j.sh 5 ./HelloWorld.gdb ../../gremlin-groovy/data/graph-example-2.xml logs.txt

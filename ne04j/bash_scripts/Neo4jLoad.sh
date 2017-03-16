@@ -8,7 +8,7 @@ for i in $(seq 1 1 $1)
 do
 	echo "Run Number:$i"
 	echo "Run Number:$i" >> $4
-	../../gremlin-groovy/bin/gremlin.sh -e ../groovy_scripts/Neo4jLoad.groovy $2 $3 >> $4
+	/gremlin-groovy/bin/gremlin.sh -e /scripts/neo4j/Neo4jLoad.groovy $2 $3 >> $4
 done
 
 # Example Run

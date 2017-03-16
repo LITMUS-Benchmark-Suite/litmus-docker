@@ -18,7 +18,7 @@ directory_maps = { \
 def g_sparksee(runs, xmlFile):
     #Loading the database
     os.system("/scripts/sparksee/SparkseeLoad.sh %s \
-    /tmp/HelloWorld.gdb %s \
+    /tmp/sparksee.gdb %s \
     /var/log/sparksee/load_logs.log" % (runs, xmlFile))
 
     #Querying the database
@@ -42,17 +42,29 @@ def r_rdf3x(runs, queryLocations, dataFile):
 def g_orient(runs, xmlFile):
     #Loading the database
     os.system("/scripts/orient/OrientLoad.sh %s \
-    /tmp/orient_load %s /scripts/orient/OrientLoad.groovy \
+    /tmp/orient_load.gdb %s /scripts/orient/OrientLoad.groovy \
     /var/log/orient/load_logs.log" % (runs, xmlFile))
 
     #Querying the database
     os.system("/scripts/orient/OrientQuery.sh %s \
-    /tmp/orient_query %s /scripts/orient/OrientLoad.groovy \
+    /tmp/orient_query.gdb %s /scripts/orient/OrientLoad.groovy \
     /var/log/orient/query_logs.log" % (runs, xmlFile))
 
     pass
 
 def g_neo4j():
+    #Loading the database
+    os.system("/scripts/neo4j/Ne04jLoad.sh %s \
+    /tmp/neo4j_load.gdb %s \
+    /var/log/neo4j/load_logs.log" % (runs, xmlFile))
+
+    #Querying the database
+    os.system("/scripts/sparksee/Neo4jQuery.sh %s \
+    /tmp/neo4j_Query.gdb %s \
+    /var/log/neo4j/query_logs.log" % (runs, xmlFile))
+
+    pass
+    
     pass
 
 def r_monet():

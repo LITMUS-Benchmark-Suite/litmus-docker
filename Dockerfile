@@ -68,6 +68,19 @@ RUN mkdir scripts
 RUN mkdir scripts/sparksee/
 ADD ./sparksee/* /scripts/sparksee/
 
+#Create directory for rdf3x
+RUN mkdir scripts/rdf3x/
+ADD ./rdf3x/* /scripts/rdf3x/
+
+#Create directory for orient
+RUN mkdir scripts/orient/
+ADD ./orient/* /scripts/orient/
+
+#Create directory for neo4j
+RUN mkdir scripts/neo4j/
+ADD ./ne04j/* /scripts/neo4j/
+
+
 
 # copying all the scripts
 ADD ./hello_world.py ./
