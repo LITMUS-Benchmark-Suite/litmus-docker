@@ -29,7 +29,9 @@ RUN tar -xf download.php?file=orientdb-community-2.1.3.tar.gz -C /
 RUN mv /orientdb-community-2.1.3 /orientdb
 
 
-
+# Install Apache Jena
+RUN wget http://mirror.fibergrid.in/apache/jena/binaries/apache-jena-3.2.0.zip
+RUN unzip apache-jena-3.2.0.zip
 
 
 
@@ -80,6 +82,9 @@ ADD ./orient/* /scripts/orient/
 RUN mkdir scripts/neo4j/
 ADD ./ne04j/* /scripts/neo4j/
 
+#Create directory for jena
+RUN mkdir scripts/jena/
+ADD ./jena/* /scripts/jena/
 
 
 # copying all the scripts

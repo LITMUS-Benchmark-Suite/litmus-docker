@@ -12,12 +12,15 @@ export PATH=$PATH:$Jena_Engine/bin:$Jena_Engine/lib
 #setParamsGetQuery
 DB_location=$1; #path where the dataset is located
 DB_name=$2; #Graph or database to access
-QUERIES_location=$3; #Path where the benchmark of queries is located
-RESULT_file=$4;#Filename where the query output will be  stored
+Dataset_name=$3;
+QUERIES_location=$4; #Path where the benchmark of queries is located
+RESULT_file=$5;#Filename where the query output will be  stored
+
+$Jena_Engine/tdbloader --verbose --loc=$DB_location/$DB_name $Dataset_name
 
 #getQuery & setParamsAlign
 for i in `ls $QUERIES_location/*.sparql`; do
-    for j in $(seq 1 1 $5)
+    for j in $(seq 1 1 $6)
     do
         sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
         export BASEN=`basename $i .sparql`;

@@ -64,8 +64,14 @@ def g_neo4j(runs, xmlFile):
 def r_monet():
     pass
 
-def r_jena():
-    pass
+def r_jena(runs, queryLocation, dataFile):
+    #Load the database
+    os.system("/scripts/jena/JenaTDBLoad.sh /tmp/ jena_graph \
+    %s /var/jena/load_log.log %s" % (dataFile, runs))
+    
+    #Run the query
+    os.system("/scripts/jena/JenaTDBExecute.sh /tmp/ jena_graph \
+    %s %s /var/jena/query_logs.log %s" % (dataFile, queryLocation, runs))
 
 def r_arq():
     pass
