@@ -26,7 +26,6 @@ def g_sparksee(runs, xmlFile):
     /tmp/HelloWorld.gdb %s \
     /var/log/sparksee/query_logs.log" % (runs, xmlFile))
 
-    pass
 
 def r_rdf3x(runs, queryLocations, dataFile):
     #Loading the database
@@ -37,7 +36,6 @@ def r_rdf3x(runs, queryLocations, dataFile):
     os.system("/scripts/rdf3x/RDF3xExecute.sh /tmp/ rdf3x_graph \
     %s %s /var/rdf3x/load_logs.log %s" % (dataFile, queryLocations, runs)) 
         
-    pass
 
 def g_orient(runs, xmlFile):
     #Loading the database
@@ -50,9 +48,8 @@ def g_orient(runs, xmlFile):
     /tmp/orient_query.gdb %s /scripts/orient/OrientLoad.groovy \
     /var/log/orient/query_logs.log" % (runs, xmlFile))
 
-    pass
 
-def g_neo4j():
+def g_neo4j(runs, xmlFile):
     #Loading the database
     os.system("/scripts/neo4j/Ne04jLoad.sh %s \
     /tmp/neo4j_load.gdb %s \
@@ -62,10 +59,7 @@ def g_neo4j():
     os.system("/scripts/sparksee/Neo4jQuery.sh %s \
     /tmp/neo4j_Query.gdb %s \
     /var/log/neo4j/query_logs.log" % (runs, xmlFile))
-
-    pass
     
-    pass
 
 def r_monet():
     pass
