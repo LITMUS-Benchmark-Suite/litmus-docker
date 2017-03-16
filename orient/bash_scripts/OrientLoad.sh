@@ -11,7 +11,7 @@ do
 	echo "Run Number:$i"
 	echo "Run Number:$i" >> $5
 
-	cd /opt/orientdb/bin && sudo ./gremlin.sh -e  $4\ $2\ $3>> $5
+	cd /orientdb/bin && sudo ./gremlin.sh -e  $4\ $2\ $3>> $5
 done
 
 # Example Run
