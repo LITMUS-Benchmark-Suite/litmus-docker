@@ -10,9 +10,9 @@ export PATH=$PATH:$Jena_Engine/bin:$Jena_Engine/lib
 
 # Input Parameters
 #setParamsGetQuery
-DB_location = $1; #path where the dataset is located
+DB_location=$1; #path where the dataset is located
 DB_name=$2; #Graph or database to access
-QUERIES_location  = $3; #Path where the benchmark of queries is located
+QUERIES_location=$3; #Path where the benchmark of queries is located
 RESULT_file=$4;#Filename where the query output will be  stored
 
 #getQuery & setParamsAlign
