@@ -5,7 +5,7 @@
 #
 
 #Settings
-export RDF_Engine=/rdf3x/bin
+export RDF_Engine=/gh-rdf3x/bin
 
 # Input Parameters
 #setParamsGetQuery
