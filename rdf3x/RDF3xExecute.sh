@@ -5,27 +5,32 @@
 #
 
 #Settings
-export RDF_Engine=/experiment/rdf3x/bin
+export RDF_Engine=/rdf3x/bin
 
 # Input Parameters
 #setParamsGetQuery
-DB_location = $1; #path where the dataset is located
+DB_location=$1; #path where the dataset is located
 DB_name=$2; #Graph or database to access
-QUERIES_location  = $3; #Path where the benchmark of queries is located
-RESULT_file=$4;#Filename where the query output will be  stored
+Dataset_name=$3; #Input Dataset 
+QUERIES_location=$4; #Path where the benchmark of queries is located
+RESULT_file=$5; #Filename where the query output will be  stored
+NO_OF_RUNS=$6;
+
+#Loading the database
+$RDF_Engine/rdf3xload $DB_location/$DB_name $DB_location/$Dataset_name > /dev/null 2
 
 #getQuery & setParamsAlign
 for i in `ls $QUERIES_location/*.sparql`; do
     export BASEN=`basename $i .sparql`;
-    sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
-    echo "------- FLUSHING CACHE -------" >> $RESULT_file;
+    
+    #echo "------- FLUSHING CACHE -------" >> $RESULT_file;
     echo $BASEN;
-    for k in `seq $5`; do
+    for k in `seq $6`; do
+        sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";        
         echo $k;
-    date;
-    echo $BASEN >> $RESULT_file;
-    echo $k >> $RESULT_file;
-# execute
-    time ($RDF_Engine/rdf3xquery $DB_location/$DB_name $i) > /dev/null 2>> $RESULT_file;
-
+        echo $BASEN >> $RESULT_file;
+        echo $k >> $RESULT_file;
+        # execute
+        time ($RDF_Engine/rdf3xquery $DB_location/$DB_name $i) > /dev/null 2>> $RESULT_file;
+    done
 done

@@ -28,10 +28,28 @@ def g_sparksee(runs, xmlFile):
 
     pass
 
-def r_rdf3x():
+def r_rdf3x(runs, queryLocations, dataFile):
+    #Loading the database
+    os.system("/scripts/rdf3x/RDF3xLoad.sh %s /tmp/ rdf3x_graph \
+    %s /var/rdf3x/load_logs.log" % (runs, dataFile)) 
+    
+    #Querying the database
+    os.system("/scripts/rdf3x/RDF3xExecute.sh /tmp/ rdf3x_graph \
+    %s %s /var/rdf3x/load_logs.log %s" % (dataFile, queryLocations, runs)) 
+        
     pass
 
-def g_orient():
+def g_orient(runs, xmlFile):
+    #Loading the database
+    os.system("/scripts/orient/OrientLoad.sh %s \
+    /tmp/orient_load %s /scripts/orient/OrientLoad.groovy \
+    /var/log/orient/load_logs.log" % (runs, xmlFile))
+
+    #Querying the database
+    os.system("/scripts/orient/OrientQuery.sh %s \
+    /tmp/orient_query %s /scripts/orient/OrientLoad.groovy \
+    /var/log/orient/query_logs.log" % (runs, xmlFile))
+
     pass
 
 def g_neo4j():
