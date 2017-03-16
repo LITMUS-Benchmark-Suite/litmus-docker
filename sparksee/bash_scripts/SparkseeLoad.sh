@@ -6,6 +6,7 @@
 
 for i in $(seq 1 1 $1)
 do
+    sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
 	echo "Run Number:$i"
     echo "Loading Script for dataset $3"
 	echo "Run Number:$i" >> $4
