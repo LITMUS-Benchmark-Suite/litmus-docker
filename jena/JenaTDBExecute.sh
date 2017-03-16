@@ -5,8 +5,8 @@
 #
 
 #Settings
-export RDF_Engine=/experiment/jenatdb/bin
-export PATH=$PATH:$RDF_Engine/bin:$RDF_Engine/lib
+export Jena_Engine=/jenatdb/bin
+export PATH=$PATH:$Jena_Engine/bin:$Jena_Engine/lib
 
 # Input Parameters
 #setParamsGetQuery
@@ -17,10 +17,14 @@ RESULT_file=$4;#Filename where the query output will be  stored
 
 #getQuery & setParamsAlign
 for i in `ls $QUERIES_location/*.sparql`; do
-    export BASEN=`basename $i .sparql`;
-    echo $BASEN;
-    date;
-    echo $BASEN >> $RESULT_file;
-    (time $RDF_Engine/tdbquery --loc=$DB_location/$DB_name --file=$i --time) > /dev/null 2>> $RESULT_file;
+    for j in $(seq 1 1 $5)
+    do
+        sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
+        export BASEN=`basename $i .sparql`;
+        echo $BASEN;
+        date;
+        echo $BASEN >> $RESULT_file;
+        (time $Jena_Engine/tdbquery --loc=$DB_location/$DB_name --file=$i --time) > /dev/null 2>> $RESULT_file;
+    done
 done
 
