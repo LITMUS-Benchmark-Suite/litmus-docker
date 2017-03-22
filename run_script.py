@@ -42,13 +42,54 @@ def gather_data_graph_dms(dms):
         if flag:
             query_no = int(each.split("Query ")[1].split("=")[0])
         else:
-            csv_query.append([directory_maps[dms], run_id, "query", query_no, int(each.strip())])
+            csv_query.append([directory_maps[dms], run_id, "query",\
+                 query_no, int(each.strip())])
 
     
     for each in csv_load:
         print(",".join(each))
     for each in csv_query:
         print(",".join(each))
+
+def gather_data_time_command(dms):
+    #Gather the data and put it in a csv format
+    csv_load = []
+    file_handler = open("/var/log/%s/load_logs.log" % (directory_maps[dms]), "r")
+    all_lines = file_handler.readlines()
+    file_handler.close()
+    run_id = 1
+    for each in all_lines:
+        csv_load.append([directory_maps[dms], run_id, "load", \
+            int(each.strip().split("\t")[2])])
+        run_id+=1
+
+
+    file_handler = open("/var/log/%s/query_logs.log" % (directory_maps[dms]), "r")
+    all_lines = file_handler.readlines()
+    file_handler.close()
+    run_id = 0
+    query_name = ""
+    csv_query = []
+    name_flag = True
+    for each in all_lines:
+        if each[0]=="*":
+            run_id = 0
+            name_flag = True
+            continue;
+        if name_flag:
+            query_name = each.strip()
+            name_flag = False
+        else:
+            run_id+=1
+            csv_query.append([directory_maps[dms], run_id, "query", query_name, \
+                    int(each.strip().split("\t")[2])])
+
+    
+    for each in csv_load:
+        print(",".join(each))
+    for each in csv_query:
+        print(",".join(each))
+
 
 def g_sparksee(runs, xmlFile):
     #Loading the database
