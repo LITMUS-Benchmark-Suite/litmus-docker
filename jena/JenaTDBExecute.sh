@@ -20,14 +20,16 @@ $Jena_Engine/tdbloader --verbose --loc=$DB_location/$DB_name $Dataset_name
 
 #getQuery & setParamsAlign
 for i in `ls $QUERIES_location/*.sparql`; do
+    export BASEN=`basename $i .sparql`;
+    echo $BASEN;
+    echo "***********" >> $RESULT_FILE;
+    echo $BASEN >> $RESULT_file;    
+
+
     for j in $(seq 1 1 $6)
     do
         sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
-        export BASEN=`basename $i .sparql`;
-        echo $BASEN;
-        date;
-        echo $BASEN >> $RESULT_file;
-        (time $Jena_Engine/tdbquery --loc=$DB_location/$DB_name --file=$i --time) > /dev/null 2>> $RESULT_file;
+       /usr/bin/time -a -o $RESULT_file -f "%S\t%U\t%e" $Jena_Engine/tdbquery --loc=$DB_location/$DB_name --file=$i --time > /dev/null 2>> /dev/null;
     done
 done
 

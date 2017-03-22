@@ -18,5 +18,5 @@ RESULT_file=$4;#Filename where the output of the loading process will be stored
 for i in $(seq 1 1 $5)
 do
     sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
-    time ($Jena_Engine/tdbloader --verbose --loc=$DB_location/$DB_name $Dataset_name) /dev/null 2>> $RESULT_file;
+    /usr/bin/time -a -o $RESULT_file -f "%S\t%U\t%e" $Jena_Engine/tdbloader --verbose --loc=$DB_location/$DB_name $Dataset_name /dev/null 2>> /dev/null;
 done
