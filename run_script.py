@@ -3,7 +3,7 @@ import os
 
 graph_based = ['g_sparksee', 'g_orient', 'g_neo4j' ]
 
-rdf_based = ['r_rdf3x', 'r_monet', 'r_jena', 'r_arq' ]
+rdf_based = ['r_rdf3x', 'r_monet', 'r_jena', 'r_arq', 'r_virtuoso' ]
 
 directory_maps = { \
     'g_sparksee':'sparksee', \
@@ -12,8 +12,43 @@ directory_maps = { \
     'r_rdf3x' : 'rdf3x', \
     'r_monet' : 'monet', \
     'r_jena' : 'jena', \
-    'r_arq' : 'arq'
+    'r_arq' : 'arq', \
+    'r_virtuoso' : 'virtuoso'
     }
+
+
+def gather_data_graph_dms(dms):
+    #Gather the data and put it in a csv format
+    csv_load = []
+    file_handler = open("/var/log/%s/load_logs.log" % (directory_maps[dms]), "r")
+    all_lines = file_handler.readlines()
+    file_handler.close()
+    run_id = 1
+    for each in all_lines:
+        csv_load.append([directory_maps[dms], run_id, "load", int(each.strip())])
+        run_id+=1
+    
+    file_handler = open("/var/log/%s/query_logs.log" % (directory_maps[dms]), "r")
+    all_lines = file_handler.readlines()[5:]
+    file_handler.close()
+    run_id = 0
+    csv_query = []
+    flag = True
+    for each in all_lines:
+        if each[0]=="#":
+            run_id+=1
+            flag = True
+            continue;
+        if flag:
+            query_no = int(each.split("Query ")[1].split("=")[0])
+        else:
+            csv_query.append([directory_maps[dms], run_id, "query", query_no, int(each.strip())])
+
+    
+    for each in csv_load:
+        print(",".join(each))
+    for each in csv_query:
+        print(",".join(each))
 
 def g_sparksee(runs, xmlFile):
     #Loading the database
@@ -26,6 +61,8 @@ def g_sparksee(runs, xmlFile):
     /tmp/HelloWorld.gdb %s \
     /var/log/sparksee/query_logs.log" % (runs, xmlFile))
 
+    #Gather the data and put it in a csv format
+    gather_graph_data("g_sparksee")
 
 def r_rdf3x(runs, queryLocations, dataFile):
     #Loading the database
@@ -48,6 +85,9 @@ def g_orient(runs, xmlFile):
     /tmp/orient_query.gdb %s /scripts/orient/OrientLoad.groovy \
     /var/log/orient/query_logs.log" % (runs, xmlFile))
 
+    gather_graph_data("g_orient")
+
+
 
 def g_neo4j(runs, xmlFile):
     #Loading the database
@@ -56,12 +96,15 @@ def g_neo4j(runs, xmlFile):
     /var/log/neo4j/load_logs.log" % (runs, xmlFile))
 
     #Querying the database
-    os.system("/scripts/sparksee/Neo4jQuery.sh %s \
+    os.system("/scripts/neo4j/Neo4jQuery.sh %s \
     /tmp/neo4j_Query.gdb %s \
     /var/log/neo4j/query_logs.log" % (runs, xmlFile))
     
+    gather_graph_data("g_neo4j")
+
 
 def r_monet():
+
     pass
 
 def r_jena(runs, queryLocation, dataFile):
@@ -76,6 +119,10 @@ def r_jena(runs, queryLocation, dataFile):
 def r_arq():
     pass
 
+def r_virtuoso():
+    pass
+    
+
 def create_log_files(list_to_benchmark):
     for each in list_to_benchmark:
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/load_logs.log'))
@@ -86,7 +133,12 @@ def foo(list_to_benchmark, runs = 10):
     #create_log_files(list_to_benchmark)    
     print(list_to_benchmark)
     pass
-        
+
+def write_csv_file(csv_list, filename):
+    file_handler = open(filename, "w")
+    for each in csv_list:
+        file_handler.write(",".join(each) + "\n");
+    file_handler.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='The Litmus Benchmark Suite')
