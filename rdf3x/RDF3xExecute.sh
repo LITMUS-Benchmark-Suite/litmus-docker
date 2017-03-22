@@ -22,15 +22,17 @@ $RDF_Engine/rdf3xload $DB_location/$DB_name $DB_location/$Dataset_name > /dev/nu
 #getQuery & setParamsAlign
 for i in `ls $QUERIES_location/*.sparql`; do
     export BASEN=`basename $i .sparql`;
-    
+
+    echo "***********" >> $RESULT_FILE;
+    echo $BASEN >> $RESULT_file;    
     #echo "------- FLUSHING CACHE -------" >> $RESULT_file;
     echo $BASEN;
+    
     for k in `seq $6`; do
         sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";        
         echo $k;
-        echo $BASEN >> $RESULT_file;
-        echo $k >> $RESULT_file;
+        #echo $k >> $RESULT_file;
         # execute
-        time ($RDF_Engine/rdf3xquery $DB_location/$DB_name $i) > /dev/null 2>> $RESULT_file;
+        /usr/bin/time -a -o $RESULT_file -f "%S\t%U\t%e" $RDF_Engine/rdf3xquery $DB_location/$DB_name $i > /dev/null 2>> /dev/null;
     done
 done
