@@ -10,7 +10,7 @@ for i in $(seq 1 1 $1)
 do
     sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
 	echo "Run Number:$i"
-	echo "Run Number:$i" >> $5
+#	echo "Run Number:$i" >> $5
 
 	cd /orientdb/bin && sudo ./gremlin.sh -e  $4\ $2\ $3>> $5
 done

@@ -9,7 +9,7 @@ do
     sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
 	echo "Run Number:$i"
     echo "Loading Script for dataset $3"
-	echo "Run Number:$i" >> $4
+	#echo "Run Number:$i" >> $4
 	/gremlin-groovy/bin/gremlin.sh -e /scripts/sparksee/SparkseeLoad.groovy $2 $3 >> $4
 done
 
