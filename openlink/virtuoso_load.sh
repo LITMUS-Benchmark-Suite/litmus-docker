@@ -2,6 +2,7 @@
 
 Virtuoso_isql=$1;
 Result_file=$2;
+
 for i in $(seq 1 1 $3)
 do
     sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
