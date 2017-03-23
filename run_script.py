@@ -25,9 +25,12 @@ def gather_data_graph_dms(dms):
     file_handler.close()
     run_id = 1
     for each in all_lines:
-        csv_load.append([directory_maps[dms], run_id, "load", int(each.strip())])
+        csv_load.append([directory_maps[dms], str(run_id), "load", each.strip()])
         run_id+=1
-    
+
+    for each in csv_load:
+        print(",".join(each))
+
     file_handler = open("/var/log/%s/query_logs.log" % (directory_maps[dms]), "r")
     all_lines = file_handler.readlines()[5:]
     file_handler.close()
@@ -41,17 +44,16 @@ def gather_data_graph_dms(dms):
             continue;
         if flag:
             query_no = int(each.split("Query ")[1].split("=")[0])
+            flag = False
         else:
-            csv_query.append([directory_maps[dms], run_id, "query",\
-                 query_no, int(each.strip())])
-
+            csv_query.append([directory_maps[dms], str(run_id), "query",\
+                 str(query_no), each.strip()])
+            flag = True
     
-    for each in csv_load:
-        print(",".join(each))
     for each in csv_query:
         print(",".join(each))
 
-def gather_data_time_command(dms):
+def gather_data_rdf_dms(dms):
     #Gather the data and put it in a csv format
     csv_load = []
     file_handler = open("/var/log/%s/load_logs.log" % (directory_maps[dms]), "r")
@@ -59,8 +61,8 @@ def gather_data_time_command(dms):
     file_handler.close()
     run_id = 1
     for each in all_lines:
-        csv_load.append([directory_maps[dms], run_id, "load", \
-            int(each.strip().split("\t")[2])])
+        csv_load.append([directory_maps[dms], str(run_id), "load", \
+            each.strip().split("\t")[2]])
         run_id+=1
 
 
@@ -81,8 +83,8 @@ def gather_data_time_command(dms):
             name_flag = False
         else:
             run_id+=1
-            csv_query.append([directory_maps[dms], run_id, "query", query_name, \
-                    int(each.strip().split("\t")[2])])
+            csv_query.append([directory_maps[dms], str(run_id), "query", query_name, \
+                    each.strip().split("\t")[2]])
 
     
     for each in csv_load:
@@ -103,7 +105,7 @@ def g_sparksee(runs, xmlFile):
     /var/log/sparksee/query_logs.log" % (runs, xmlFile))
 
     #Gather the data and put it in a csv format
-    gather_graph_data("g_sparksee")
+    gather_data_graph_dms("g_sparksee")
 
 def r_rdf3x(runs, queryLocations, dataFile):
     #Loading the database
@@ -126,7 +128,7 @@ def g_orient(runs, xmlFile):
     /tmp/orient_query.gdb %s /scripts/orient/OrientLoad.groovy \
     /var/log/orient/query_logs.log" % (runs, xmlFile))
 
-    gather_graph_data("g_orient")
+    gather_data_graph_dms("g_orient")
 
 
 
@@ -141,7 +143,7 @@ def g_neo4j(runs, xmlFile):
     /tmp/neo4j_Query.gdb %s \
     /var/log/neo4j/query_logs.log" % (runs, xmlFile))
     
-    gather_graph_data("g_neo4j")
+    gather_data_graph_dms("g_neo4j")
 
 
 def r_monet():
@@ -205,4 +207,4 @@ if __name__ == "__main__":
     except Exception as e:
         total_runs = 5
     #foo(final_list, runs = total_runs)
-    g_sparksee(10, '/graph_data/graph-example-1.xml')
+    g_sparksee(2, '/graph_data/graph-example-1.xml')
