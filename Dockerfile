@@ -1,5 +1,7 @@
 FROM ubuntu:16.04
 
+MAINTAINER Yashwant Keswani <yashwant.keswani@gmail.com>
+
 # Install packages.
 RUN apt-get update && apt-get install -y \
             git \
@@ -17,6 +19,15 @@ RUN apt-get update && apt-get install -y \
 RUN git clone https://github.com/gh-rdf3x/gh-rdf3x.git \
     && cd gh-rdf3x \
     && make
+
+# Install Openlink Virtuoso
+# RUN apt-get update && apt-get install -y openssl
+# RUN git clone https://github.com/openlink/virtuoso-opensource \
+  #  && cd virtuoso-opensource \
+  #  && ./autogen.sh \
+  #  && ./configure \
+  #  && make \
+  #  && make install
 
 # Install Gremlin Groovy for sparksee
 RUN wget http://www.tinkerpop.com/downloads/gremlin/gremlin-groovy-2.6.0.zip
@@ -92,4 +103,4 @@ ADD ./hello_world.py ./
 ADD ./run_script.py ./
 
 #CMD ls 
-CMD python3 run_script.py && cat /var/log/sparksee/*
+CMD python3 run_script.py 
