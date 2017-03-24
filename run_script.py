@@ -162,8 +162,20 @@ def r_jena(runs, queryLocation, dataFile):
 def r_arq():
     pass
 
-def r_virtuoso():
-    pass
+def r_virtuoso(runs, queryLocation, dataFileLocation):
+    # All the files which match *.ttl in the dataFile location, would be loaded
+    os.system("/scripts/virtuoso/setup_ini.py -l . -f %s -qf %s" % (dataFileLocation, queryLocation))
+    
+    # Starting the server
+    os.system("/usr/local/virtuoso-opensource/bin/virtuoso-t /scripts/virtuoso/virtuoso.ini")
+
+    # Running the loads
+    os.system("/scripts/virtuoso/virtuoso_load.sh /usr/local/virtuoso-opensource/bin/isql \
+            /var/virtuoso/load_logs.log %s" %(runs))    
+    # Running the queries
+    os.system("/scripts/virtuoso/virtuoso_execute.sh /usr/local/virtuoso-opensource/bin/isql \
+            /var/virtuoso/query_logs.log %s %s" % (queryLocation, runs))    
+    
     
 
 def create_log_files(list_to_benchmark):
