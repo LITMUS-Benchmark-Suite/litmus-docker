@@ -102,5 +102,20 @@ ADD ./jena/* /scripts/jena/
 ADD ./hello_world.py ./
 ADD ./run_script.py ./
 
-#CMD ls 
-CMD python3 run_script.py 
+#Installing open link virtuoso
+RUN apt-get install -y build-essential debhelper autotools-dev autoconf automake unzip wget net-tools git libtool flex bison gperf gawk m4 libssl-dev libreadline-dev libreadline-dev openssl 
+RUN git clone https://github.com/openlink/virtuoso-opensource.git \
+        && cd virtuoso-opensource \
+        && ./autogen.sh \
+        && ./configure \
+        && make && make install 
+
+#Create directory for virtuoso
+RUN mkdir scripts/virtuoso/
+ADD ./openlink/* /scripts/virtuoso/
+
+
+# create directory for virtuoso logs
+RUN mkdir /var/log/virtuoso
+
+CMD ls -R /usr/local/virtuoso-opensource
