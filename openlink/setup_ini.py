@@ -265,6 +265,6 @@ select 'Loading data...';
 --      <folder with data>  <pattern>    <default graph if no graph file specified>
 ld_dir ('%s', '*.ttl', 'http://test.org');
 """ % (args["data_directory"])
-prepare_filehandler(prepare_filename, "w")
+prepare_filehandler = open(prepare_filename, "w")
 prepare_filehandler.write(prepare_sql_file)
 prepare_filehandler.close()
