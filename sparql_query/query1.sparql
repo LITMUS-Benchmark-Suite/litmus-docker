@@ -1,0 +1,3 @@
+select ?s ?o ?p
+WHERE {?s ?o ?p}
+LIMIT 10;
