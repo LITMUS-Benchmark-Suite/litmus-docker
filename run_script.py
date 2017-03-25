@@ -209,7 +209,7 @@ def generate_rdf_query(rdf_query_location):
     """This function will generate SPARQL query file for the 
     Virtuoso RDF Model"""
     os.mkdir("/virtuoso_queries")
-    all_sparql = glob.glob("*.sparql")
+    all_sparql = glob.glob(rdf_query_location + "/*.sparql")
     for each in all_sparql:
         new_file = open("/virtuoso_queries/" + get_name_of_file(each), "w")
         original_file = open(each, "r").read()
@@ -236,6 +236,7 @@ println "Dataset is " + args[1]
 no_of_times = Integer.parseInt(args[2])
 println "==============Running The Queries=========="
 for (i in 1..no_of_times) {
+    println "################Run "+i+"##################"
 """)
     sparksee_filehandler.write(gremlin_queries)
     sparksee_filehandler.write("""}
@@ -254,6 +255,7 @@ println "===============Graph Model Loaded============"
 no_of_times = Integer.parseInt(args[2])
 println "==============Starting to Run The Queries=========="
 for (i in 1..no_of_times) {
+    println "################Run "+i+"##################"
 """);
     neo4j_filehandler.write(gremlin_queries)
     neo4j_filehandler.write("""}
@@ -272,6 +274,7 @@ println "===============Graph Model Loaded============"
 no_of_times = Integer.parseInt(args[2])
 println "==============Starting to Run The Queries=========="
 for (i in 1..no_of_times) {
+    println "################Run "+i+"##################"
 """)
     orient_filehandler.write(gremlin_queries)
     orient_filehandler.write("""}
@@ -280,11 +283,31 @@ x.shutdown()""")
 
 def sanity_checks(args):
     is_sane = True
-    is_sane = is_sane and os.path.isfile(args["graph_datafile"])
-    is_sane = is_sane and os.path.isfile(args["rdf_datafile"])
-    is_sane = is_sane and os.path_exists(args["graph_queries"])
-    is_sane = is_sane and os.path_exists(args["rdf_queries"])
-    return is_sane
+    if not os.path.isfile(args["graph_datafile"]):
+        print("Incorrect Path to Graph File. IT does not exist.")
+        return False
+    if not os.path_exists(args["rdf_datafile"]):
+        print("The directory does not exist")  
+    else:
+        s = glob.glob(args["rdf_datafile"] + "/*.ttl")
+        if len(s) == 0:
+            print("No .ttl files in the given directory")
+            return False
+    
+        
+    if not os.path_exists(args["graph_queries"]):
+        print("The graph query file does not exist")
+        return False
+    
+    if not os.path_exists(args["rdf_queries"]):
+        print("The Sparql queries do not exist")
+    else:
+        s = glob.glob(args["rdf_queries"]+ "/*.sparql")
+        if len(s) == 0:
+            print("No sparql files exist")
+            return False
+    
+    return True
 
 
 if __name__ == "__main__":
@@ -302,9 +325,8 @@ if __name__ == "__main__":
     
     args = vars(parser.parse_args())
     if not sanity_checks(args):
-        print("The path specified is incorrect. Please check again")
         sys.exit(-1)
-
+    
     final_list = None
     verbose = args['verbose']
     if args['all'] or (args['graph'] and args['rdf']):
