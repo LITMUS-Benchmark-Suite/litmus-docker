@@ -7,5 +7,5 @@
 
 #All the queries have to be written in the OrientQuery.groovy file itself.
 
-cd /orientdb/bin && sudo ./gremlin.sh -e  $4\ $2\ $3\ $1 >> $5
+cd /orientdb/bin && ./gremlin.sh -e  $4\ $2\ $3\ $1 >> $5
 

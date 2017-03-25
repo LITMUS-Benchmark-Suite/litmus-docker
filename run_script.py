@@ -283,9 +283,15 @@ x.shutdown()""")
 
 def sanity_checks(args):
     is_sane = True
-    if not os.path.isfile(args["graph_datafile"]):
-        print("Incorrect Path to Graph File. IT does not exist.")
+    if not os.path_exists(args["graph_datafile"]):
+        print("Incorrect Path.")
         return False
+    else:
+        s = glob.glob(args["graph_datafile"] + "/*")
+        if len(s)!=1:
+            print("Please make sure there is only one file in the specified graph_datafile directory")
+            return False
+
     if not os.path_exists(args["rdf_datafile"]):
         print("The directory does not exist")  
     else:
@@ -298,7 +304,12 @@ def sanity_checks(args):
     if not os.path_exists(args["graph_queries"]):
         print("The graph query file does not exist")
         return False
-    
+    else:
+        s = glob.glob(args["graph_queries"]+"/gremlin.groovy")
+        if len(s)!=1:
+            print("Please make sure that the file gremlin.groovy is present in the dataset")
+            return False
+
     if not os.path_exists(args["rdf_queries"]):
         print("The Sparql queries do not exist")
     else:
@@ -347,10 +358,12 @@ if __name__ == "__main__":
     foo(final_list, runs = total_runs)
     
     if args['graph']:
-        generate_graph_queries(args['graph_queries'])
-        g_sparksee(total_runs, args['graph_datafile'])
-        g_orient(total_runs, args['graph_datafile'])
-        g_neo4j(total_runs, args['graph_datafile'])
+        generate_graph_queries(args['graph_queries']+"/gremlin.groovy")
+        name_of_graph = glob.glob(args['graph_datafile'] + "/*")
+        name_of_graph = name_of_graph[1]
+        g_sparksee(total_runs, name_of_graph)
+        g_orient(total_runs, name_of_graph)
+        g_neo4j(total_runs, name_of_graph)
     if args['rdf']:
         generate_rdf_queries(args['rdf_queries'])
         r_rdf3x(total_runs, args['rdf_queries'], args['rdf_datafile'])
