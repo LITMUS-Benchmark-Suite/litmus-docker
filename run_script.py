@@ -1,5 +1,7 @@
 import argparse
 import os
+import glob
+import sys
 
 graph_based = ['g_sparksee', 'g_orient', 'g_neo4j' ]
 
@@ -159,6 +161,8 @@ def r_jena(runs, queryLocation, dataFile):
     os.system("/scripts/jena/JenaTDBExecute.sh /tmp/ jena_graph \
     %s %s /var/jena/query_logs.log %s" % (dataFile, queryLocation, runs))
 
+    gather_data_rdf_dms('r_jena')
+
 def r_arq():
     pass
 
@@ -176,7 +180,7 @@ def r_virtuoso(runs, queryLocation, dataFileLocation):
     os.system("/scripts/virtuoso/virtuoso_execute.sh /usr/local/virtuoso-opensource/bin/isql \
             /var/virtuoso/query_logs.log %s %s" % (queryLocation, runs))    
     
-    
+    gather_data_rdf_dms('r_virtuoso')    
 
 def create_log_files(list_to_benchmark):
     for each in list_to_benchmark:
@@ -195,18 +199,118 @@ def write_csv_file(csv_list, filename):
         file_handler.write(",".join(each) + "\n");
     file_handler.close()
 
+def get_name_of_file(file_location):
+    try:
+        return file_location.split("/")[-1]
+    except Exception as e:
+        return file_location
+
+def generate_rdf_query(rdf_query_location):
+    """This function will generate SPARQL query file for the 
+    Virtuoso RDF Model"""
+    os.mkdir("/virtuoso_queries")
+    all_sparql = glob.glob("*.sparql")
+    for each in all_sparql:
+        new_file = open("/virtuoso_queries/" + get_name_of_file(each), "w")
+        original_file = open(each, "r").read()
+        new_file.write("SPARQL;\n")
+        new_file.write(original_file)
+        new_file.close()     
+
+def generate_graph_queries(gremlin_query_location):
+    """This function will generate the custom groovy files for all 
+        the three graph based dbs"""
+    
+    gremlin_queries = open(gremlin_query_location, "r").read()
+    sparksee_filehandler = open("/scripts/sparksee/SparkseeQuery.groovy", "w")
+    sparksee_filehandler.write("""import com.tinkerpop.blueprints.impls.sparksee.*
+
+x = new SparkseeGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+
+println "Dataset is " + args[1]
+no_of_times = Integer.parseInt(args[2])
+println "==============Running The Queries=========="
+for (i in 1..no_of_times) {
+""")
+    sparksee_filehandler.write(gremlin_queries)
+    sparksee_filehandler.write("""}
+x.shutdown()""");
+    sparksee_filehandler.close()
+
+    neo4j_filehandler = open("/scripts/neo4j/Neo4jQuery.groovy", "w")
+    neo4j_filehandler.write("""x = new Neo4jGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+
+
+no_of_times = Integer.parseInt(args[2])
+println "==============Starting to Run The Queries=========="
+for (i in 1..no_of_times) {
+""");
+    neo4j_filehandler.write(gremlin_queries)
+    neo4j_filehandler.write("""}
+x.shutdown()""")
+    neo4j_filehandler.close()    
+
+    orient_filehandler = open("/scripts/orient/OrientQuery.groovy", "w")
+    orient_filehandler.write("""println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x = new OrientGraph("memory:"+args[0])
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+
+
+no_of_times = Integer.parseInt(args[2])
+println "==============Starting to Run The Queries=========="
+for (i in 1..no_of_times) {
+""")
+    orient_filehandler.write(gremlin_queries)
+    orient_filehandler.write("""}
+x.shutdown()""")
+    orient_filehandler.close()
+
+def sanity_checks(args):
+    is_sane = True
+    is_sane = is_sane and os.path.isfile(args["graph_datafile"])
+    is_sane = is_sane and os.path.isfile(args["rdf_datafile"])
+    is_sane = is_sane and os.path_exists(args["graph_queries"])
+    is_sane = is_sane and os.path_exists(args["rdf_queries"])
+    return is_sane
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='The Litmus Benchmark Suite')
+    parser.add_argument('-gd', '--graph_datafile', help='The location of the Graph Database File', required = True)
+    parser.add_argument('-rd', '--rdf_datafile', help='The location of the RDF Database File', required = True)
+    parser.add_argument('-gq', '--graph_queries', help='The location of the Gremlin Queries', required = True)
+    parser.add_argument('-rq', '--rdf_queries', help = 'The location of the Sparql Queries', required = True)    
     parser.add_argument('-v', '--verbose', action = "store_true", help = "Verbose", required = False)
     parser.add_argument('-a','--all', action = "store_true" , help='Run for all DMS', required=False)
     parser.add_argument('-g','--graph', action = "store_true", help='Run for all Graph Based DMS', required=False)
     parser.add_argument('-r','--rdf', action = "store_true", help='Run for all RDF Based DMS', required=False)
     parser.add_argument('-n', '--runs', help='Number of times, the experiment should be conducted', required = False)
+    
+    
     args = vars(parser.parse_args())
+    if not sanity_checks(args):
+        print("The path specified is incorrect. Please check again")
+        sys.exit(-1)
+
     final_list = None
     verbose = args['verbose']
     if args['all'] or (args['graph'] and args['rdf']):
         final_list = graph_based + rdf_based
+        args['graph'] = True
+        args['rdf'] = True
     elif args['graph']:
         final_list = graph_based 
     elif args['rdf']:
@@ -218,5 +322,16 @@ if __name__ == "__main__":
         total_runs = int(args['runs'])
     except Exception as e:
         total_runs = 5
-    #foo(final_list, runs = total_runs)
-    g_sparksee(2, '/graph_data/graph-example-1.xml')
+    foo(final_list, runs = total_runs)
+    
+    if args['graph']:
+        generate_graph_queries(args['graph_queries'])
+        g_sparksee(total_runs, args['graph_datafile'])
+        g_orient(total_runs, args['graph_datafile'])
+        g_neo4j(total_runs, args['graph_datafile'])
+    if args['rdf']:
+        generate_rdf_queries(args['rdf_queries'])
+        r_rdf3x(total_runs, args['rdf_queries'], args['rdf_datafile'])
+        r_jena(total_runs, args['rdf_queries'], args['rdf_datafile'])
+        r_virtuoso(total_runs, "/virtuoso_queries/", args['rdf_datafile'])
+
