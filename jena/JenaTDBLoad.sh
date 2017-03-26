@@ -4,7 +4,7 @@
 # Script to load a dataset in JenaTDB
 
 #Settings
-export Jena_Engine=/experiment/jenatdb/bin
+export Jena_Engine=/apache-jena-3.2.0/bin
 export PATH=$PATH:$Jena_Engine/bin:$Jena_Engine/lib
 
 # Input Parameters

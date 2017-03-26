@@ -5,7 +5,7 @@
 #
 
 #Settings
-export Jena_Engine=/jenatdb/bin
+export Jena_Engine=/apache-jena-3.2.0/bin
 export PATH=$PATH:$Jena_Engine/bin:$Jena_Engine/lib
 
 # Input Parameters
@@ -22,14 +22,14 @@ $Jena_Engine/tdbloader --verbose --loc=$DB_location/$DB_name $Dataset_name
 for i in `ls $QUERIES_location/*.sparql`; do
     export BASEN=`basename $i .sparql`;
     echo $BASEN;
-    echo "***********" >> $RESULT_FILE;
+    echo "***********" >> $RESULT_file;
     echo $BASEN >> $RESULT_file;    
-
+    cat $i
 
     for j in $(seq 1 1 $6)
     do
         sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
-       /usr/bin/time -a -o $RESULT_file -f "%S\t%U\t%e" $Jena_Engine/tdbquery --loc=$DB_location/$DB_name --file=$i --time > /dev/null 2>> /dev/null;
+       /usr/bin/time -a -o $RESULT_file -f "%S\t%U\t%e" $Jena_Engine/tdbquery --loc=$DB_location/$DB_name --file=$i > /dev/null 2>> /dev/null;
     done
 done
 
