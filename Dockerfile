@@ -44,10 +44,19 @@ RUN mv /orientdb-community-2.1.3 /orientdb
 RUN wget http://mirror.fibergrid.in/apache/jena/binaries/apache-jena-3.2.0.zip
 RUN unzip apache-jena-3.2.0.zip
 
+#Installing open link virtuoso
+RUN apt-get install -y build-essential debhelper autotools-dev autoconf automake unzip wget net-tools git libtool flex bison gperf gawk m4 libssl-dev libreadline-dev libreadline-dev openssl 
+RUN git clone https://github.com/openlink/virtuoso-opensource.git \
+        && cd virtuoso-opensource \
+        && ./autogen.sh \
+        && ./configure \
+        && make && make install 
+
+
 
 
 # create directory for gh-rdf3x logs
-RUN mkdir /var/log/gh-rdf3x
+RUN mkdir /var/log/rdf3x
 
 # create directory for sparkee logs
 RUN mkdir /var/log/sparksee
@@ -102,13 +111,6 @@ ADD ./jena/* /scripts/jena/
 ADD ./hello_world.py ./
 ADD ./run_script.py ./
 
-#Installing open link virtuoso
-RUN apt-get install -y build-essential debhelper autotools-dev autoconf automake unzip wget net-tools git libtool flex bison gperf gawk m4 libssl-dev libreadline-dev libreadline-dev openssl 
-RUN git clone https://github.com/openlink/virtuoso-opensource.git \
-        && cd virtuoso-opensource \
-        && ./autogen.sh \
-        && ./configure \
-        && make && make install 
 
 #Create directory for virtuoso
 RUN mkdir scripts/virtuoso/
@@ -118,4 +120,23 @@ ADD ./openlink/* /scripts/virtuoso/
 # create directory for virtuoso logs
 RUN mkdir /var/log/virtuoso
 
-CMD ls -R /usr/local/virtuoso-opensource
+#Copy all the graph_files
+#RUN mkdir /graph_data
+ADD ./graph_data/* /graph_data/
+
+#Copy all the rdf_files
+RUN mkdir /rdf_data
+ADD ./rdf_data/* /rdf_data/
+
+#Copy all the sparql queries
+RUN mkdir /sparql_query
+ADD ./sparql_query/* /sparql_query/
+
+#Copy all the gremlin queries
+RUN mkdir /gremlin_query
+ADD ./gremlin_query/* /gremlin_query/
+
+RUN apt-get install time
+
+CMD python3 run_script.py -a -n 2 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query 
+#CMD ls /apache-jena-3.2.0/bin/*
