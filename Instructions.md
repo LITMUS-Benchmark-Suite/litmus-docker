@@ -3,7 +3,7 @@
 Please follow the following instruction before you build the docker.
 
 ## The RDF data files
-Please keep all the rdf data files in the directory **rdf_data**. They should be in a .ttl format.
+Please keep all the rdf data files in the directory **rdf_data**. There should be only a single file in the directory.
 
 ## The graph data file
 There should be a single graph data file which should be present in the directory **graph_data**. It should be in the **Graph_ML** format.
