@@ -17,7 +17,7 @@ RESULT_FILE=$5; #Filename where the query output will be  stored
 NO_OF_RUNS=$6;
 
 #Loading the database
-$RDF_Engine/rdf3xload $DB_location/$DB_name $Dataset_name > /dev/null 2
+$RDF_Engine/rdf3xload $DB_location/$DB_name $Dataset_name 
 echo "Inside RDF Execute";
 #getQuery & setParamsAlign
 for i in `ls $QUERIES_location/*.sparql`; do
