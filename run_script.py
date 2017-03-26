@@ -2,7 +2,7 @@ import argparse
 import os
 import glob
 import sys
-
+import time
 graph_based = ['g_sparksee', 'g_orient', 'g_neo4j' ]
 
 rdf_based = ['r_rdf3x', 'r_monet', 'r_jena', 'r_arq', 'r_virtuoso' ]
@@ -27,8 +27,11 @@ def gather_data_graph_dms(dms):
     file_handler.close()
     run_id = 1
     for each in all_lines:
-        csv_load.append([directory_maps[dms], str(run_id), "load", each.strip()])
-        run_id+=1
+        try:
+            csv_load.append([directory_maps[dms], str(run_id), "load", str(int(each.strip()))])
+            run_id+=1
+        except Exception as e:
+            print(e)
 
     for each in csv_load:
         print(",".join(each))
@@ -48,9 +51,12 @@ def gather_data_graph_dms(dms):
             query_no = int(each.split("Query ")[1].split("=")[0])
             flag = False
         else:
-            csv_query.append([directory_maps[dms], str(run_id), "query",\
-                 str(query_no), each.strip()])
-            flag = True
+            try:
+                csv_query.append([directory_maps[dms], str(run_id), "query",\
+                 str(query_no), str(int(each.strip()))])
+                flag = True
+            except Exception as e:
+                print(e)
     
     for each in csv_query:
         print(",".join(each))
@@ -111,13 +117,14 @@ def g_sparksee(runs, xmlFile):
 
 def r_rdf3x(runs, queryLocations, dataFile):
     #Loading the database
-    os.system("/scripts/rdf3x/RDF3xLoad.sh %s /tmp/ rdf3x_graph \
-    %s /var/rdf3x/load_logs.log" % (runs, dataFile)) 
+    os.system("/scripts/rdf3x/RDF3xLoad.sh %s /tmp rdf3x_graph \
+    %s /var/log/rdf3x/load_logs.log" % (runs, dataFile)) 
     
     #Querying the database
-    os.system("/scripts/rdf3x/RDF3xExecute.sh /tmp/ rdf3x_graph \
-    %s %s /var/rdf3x/load_logs.log %s" % (dataFile, queryLocations, runs)) 
+    os.system("/scripts/rdf3x/RDF3xExecute.sh /tmp rdf3x_graph \
+    %s %s /var/log/rdf3x/query_logs.log %s" % (dataFile, queryLocations, runs)) 
         
+    gather_data_rdf_dms("r_rdf3x")
 
 def g_orient(runs, xmlFile):
     #Loading the database
@@ -127,7 +134,7 @@ def g_orient(runs, xmlFile):
 
     #Querying the database
     os.system("/scripts/orient/OrientQuery.sh %s \
-    /tmp/orient_query.gdb %s /scripts/orient/OrientLoad.groovy \
+    /tmp/orient_query.gdb %s /scripts/orient/OrientQuery.groovy \
     /var/log/orient/query_logs.log" % (runs, xmlFile))
 
     gather_data_graph_dms("g_orient")
@@ -136,7 +143,7 @@ def g_orient(runs, xmlFile):
 
 def g_neo4j(runs, xmlFile):
     #Loading the database
-    os.system("/scripts/neo4j/Ne04jLoad.sh %s \
+    os.system("/scripts/neo4j/Neo4jLoad.sh %s \
     /tmp/neo4j_load.gdb %s \
     /var/log/neo4j/load_logs.log" % (runs, xmlFile))
 
@@ -155,11 +162,11 @@ def r_monet():
 def r_jena(runs, queryLocation, dataFile):
     #Load the database
     os.system("/scripts/jena/JenaTDBLoad.sh /tmp/ jena_graph \
-    %s /var/jena/load_log.log %s" % (dataFile, runs))
+    %s /var/log/jena/load_logs.log %s" % (dataFile, runs))
     
     #Run the query
     os.system("/scripts/jena/JenaTDBExecute.sh /tmp/ jena_graph \
-    %s %s /var/jena/query_logs.log %s" % (dataFile, queryLocation, runs))
+    %s %s /var/log/jena/query_logs.log %s" % (dataFile, queryLocation, runs))
 
     gather_data_rdf_dms('r_jena')
 
@@ -168,17 +175,15 @@ def r_arq():
 
 def r_virtuoso(runs, queryLocation, dataFileLocation):
     # All the files which match *.ttl in the dataFile location, would be loaded
-    os.system("/scripts/virtuoso/setup_ini.py -l . -f %s -qf %s" % (dataFileLocation, queryLocation))
+    os.system("python3 /scripts/virtuoso/setup_ini.py -l /scripts/virtuoso -df %s -qf %s" % (dataFileLocation, queryLocation))
     
     # Starting the server
-    os.system("/usr/local/virtuoso-opensource/bin/virtuoso-t /scripts/virtuoso/virtuoso.ini")
-
+    os.system("cd /scripts/virtuoso && /usr/local/virtuoso-opensource/bin/virtuoso-t -f /scripts/virtuoso/ &")
+    time.sleep(30)
     # Running the loads
-    os.system("/scripts/virtuoso/virtuoso_load.sh /usr/local/virtuoso-opensource/bin/isql \
-            /var/virtuoso/load_logs.log %s" %(runs))    
+    os.system("/scripts/virtuoso/virtuoso_load.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/load_logs.log %s" %(runs))    
     # Running the queries
-    os.system("/scripts/virtuoso/virtuoso_execute.sh /usr/local/virtuoso-opensource/bin/isql \
-            /var/virtuoso/query_logs.log %s %s" % (queryLocation, runs))    
+    os.system("/scripts/virtuoso/virtuoso_execute.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_logs.log %s %s" % (queryLocation, runs))    
     
     gather_data_rdf_dms('r_virtuoso')    
 
@@ -205,17 +210,21 @@ def get_name_of_file(file_location):
     except Exception as e:
         return file_location
 
-def generate_rdf_query(rdf_query_location):
+def generate_rdf_queries(rdf_query_location):
     """This function will generate SPARQL query file for the 
-    Virtuoso RDF Model"""
+    Virtuoso RDF Model and the Apache Jena"""
     os.mkdir("/virtuoso_queries")
+    os.mkdir("/jena_queries")
     all_sparql = glob.glob(rdf_query_location + "/*.sparql")
     for each in all_sparql:
         new_file = open("/virtuoso_queries/" + get_name_of_file(each), "w")
         original_file = open(each, "r").read()
         new_file.write("SPARQL;\n")
         new_file.write(original_file)
-        new_file.close()     
+        new_file.close()
+        apache_file = open("/jena_queries/" + get_name_of_file(each), "w")
+        apache_file.write(original_file.split(";")[0])
+        apache_file.close()
 
 def generate_graph_queries(gremlin_query_location):
     """This function will generate the custom groovy files for all 
@@ -283,7 +292,7 @@ x.shutdown()""")
 
 def sanity_checks(args):
     is_sane = True
-    if not os.path_exists(args["graph_datafile"]):
+    if not os.path.exists(args["graph_datafile"]):
         print("Incorrect Path.")
         return False
     else:
@@ -292,16 +301,17 @@ def sanity_checks(args):
             print("Please make sure there is only one file in the specified graph_datafile directory")
             return False
 
-    if not os.path_exists(args["rdf_datafile"]):
+    if not os.path.exists(args["rdf_datafile"]):
         print("The directory does not exist")  
     else:
-        s = glob.glob(args["rdf_datafile"] + "/*.ttl")
-        if len(s) == 0:
-            print("No .ttl files in the given directory")
+        s = glob.glob(args["graph_datafile"] + "/*")
+        if len(s)!=1:
+            print("Please make sure there is only one file in the specified rdf_datafile directory")
             return False
-    
+
+   
         
-    if not os.path_exists(args["graph_queries"]):
+    if not os.path.exists(args["graph_queries"]):
         print("The graph query file does not exist")
         return False
     else:
@@ -310,7 +320,7 @@ def sanity_checks(args):
             print("Please make sure that the file gremlin.groovy is present in the dataset")
             return False
 
-    if not os.path_exists(args["rdf_queries"]):
+    if not os.path.exists(args["rdf_queries"]):
         print("The Sparql queries do not exist")
     else:
         s = glob.glob(args["rdf_queries"]+ "/*.sparql")
@@ -355,18 +365,22 @@ if __name__ == "__main__":
         total_runs = int(args['runs'])
     except Exception as e:
         total_runs = 5
-    foo(final_list, runs = total_runs)
+    #foo(final_list, runs = total_runs)
     
     if args['graph']:
         generate_graph_queries(args['graph_queries']+"/gremlin.groovy")
         name_of_graph = glob.glob(args['graph_datafile'] + "/*")
-        name_of_graph = name_of_graph[1]
+        name_of_graph = name_of_graph[0]
         g_sparksee(total_runs, name_of_graph)
         g_orient(total_runs, name_of_graph)
         g_neo4j(total_runs, name_of_graph)
-    if args['rdf']:
+    if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
-        r_rdf3x(total_runs, args['rdf_queries'], args['rdf_datafile'])
-        r_jena(total_runs, args['rdf_queries'], args['rdf_datafile'])
-        r_virtuoso(total_runs, "/virtuoso_queries/", args['rdf_datafile'])
+        name_of_graph = glob.glob(args['rdf_datafile'] + "/*.ttl")
+        name_of_graph = name_of_graph[0]
+        create_log_files(final_list)
+        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
+                
+        r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
+        r_jena(total_runs, "/jena_queries", name_of_graph)
 
