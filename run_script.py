@@ -368,7 +368,7 @@ loadModel = System.currentTimeMillis()
 x.loadGraphML(args[1])
 println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
 println "===============Graph Model Loaded============"
-
+x.V.count();
 println "Dataset is " + args[1]
 no_of_times = Integer.parseInt(args[2])
 println "==============Running The Queries=========="
@@ -387,7 +387,7 @@ loadModel = System.currentTimeMillis()
 x.loadGraphML(args[1])
 println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
 println "===============Graph Model Loaded============"
-
+x.V.count();
 
 no_of_times = Integer.parseInt(args[2])
 println "==============Starting to Run The Queries=========="
@@ -406,7 +406,7 @@ x = new OrientGraph("memory:"+args[0])
 x.loadGraphML(args[1])
 println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
 println "===============Graph Model Loaded============"
-
+x.V.count();
 
 no_of_times = Integer.parseInt(args[2])
 println "==============Starting to Run The Queries=========="
