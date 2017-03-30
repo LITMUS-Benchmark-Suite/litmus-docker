@@ -77,31 +77,30 @@ def gather_data_graph_dms(dms):
 
 
 
-    if dms != "g_orient":
-        logger.info("Opening the query_hot_logs.log file for %s" % (dms))
-        file_handler = open("/var/log/%s/query_hot_logs.log" % (directory_maps[dms]), "r")
-        all_lines = file_handler.readlines()[5:]
-        file_handler.close()
-        logger.info("Succesfuly opened and read the query_hot_logs.log file for %s" % (dms))
-
-        run_id = 0
-        flag = True
-        for each in all_lines:
-            if each[0]=="#":
-                run_id+=1
+    
+    logger.info("Opening the query_hot_logs.log file for %s" % (dms))
+    file_handler = open("/var/log/%s/query_hot_logs.log" % (directory_maps[dms]), "r")
+    all_lines = file_handler.readlines()[5:]
+    file_handler.close()
+    logger.info("Succesfuly opened and read the query_hot_logs.log file for %s" % (dms))
+    run_id = 0
+    flag = True
+    for each in all_lines:
+        if each[0]=="#":
+            run_id+=1
+            flag = True
+            continue;
+        if flag:
+            query_no = int(each.split("Query ")[1].split("=")[0])
+            flag = False
+        else:
+            try:
+                csv_query.append([directory_maps[dms], str(run_id), "query_hot",\
+                 str(query_no), str(int(each.strip()))])
                 flag = True
-                continue;
-            if flag:
-                query_no = int(each.split("Query ")[1].split("=")[0])
-                flag = False
-            else:
-                try:
-                    csv_query.append([directory_maps[dms], str(run_id), "query_hot",\
-                     str(query_no), str(int(each.strip()))])
-                    flag = True
-                except Exception as e:
-                    print(e)
-        logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
+            except Exception as e:
+                print(e)
+    logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
 
 
     
@@ -242,6 +241,15 @@ def g_orient(runs, xmlFile):
     os.system("/scripts/orient/OrientQuery.sh %s \
     /tmp/orient_query.gdb %s /scripts/orient/OrientQueryCold.groovy \
     /var/log/orient/query_cold_logs.log" % (runs, xmlFile))
+
+    logger.info("Running the command : /scripts/orient/OrientQuery.sh %s \
+    /tmp/orient_query.gdb %s /scripts/orient/OrientQueryHot.groovy \
+    /var/log/orient/query_hot_logs.log" % (runs, xmlFile))
+
+    os.system("/scripts/orient/OrientQuery.sh %s \
+    /tmp/orient_query.gdb %s /scripts/orient/OrientQueryHot.groovy \
+    /var/log/orient/query_hot_logs.log" % (runs, xmlFile))
+
 
 
     logger.info("Gathering the info and putting it in a csv file")
