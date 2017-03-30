@@ -49,7 +49,7 @@ def gather_data_graph_dms(dms):
     for each in csv_load:
         print(",".join(each))
 
-    logger.info("Opening the query_logs.log file for %s" % (dms))
+    logger.info("Opening the query_cold_logs.log file for %s" % (dms))
     file_handler = open("/var/log/%s/query_cold_logs.log" % (directory_maps[dms]), "r")
     all_lines = file_handler.readlines()[5:]
     file_handler.close()
@@ -68,12 +68,41 @@ def gather_data_graph_dms(dms):
             flag = False
         else:
             try:
-                csv_query.append([directory_maps[dms], str(run_id), "query",\
+                csv_query.append([directory_maps[dms], str(run_id), "query_cold",\
                  str(query_no), str(int(each.strip()))])
                 flag = True
             except Exception as e:
                 print(e)
     logger.info("Succesfuly processed the query_cold_logs.log file for %s" % (dms))
+
+
+
+    if dms != "g_orient":
+        logger.info("Opening the query_hot_logs.log file for %s" % (dms))
+        file_handler = open("/var/log/%s/query_hot_logs.log" % (directory_maps[dms]), "r")
+        all_lines = file_handler.readlines()[5:]
+        file_handler.close()
+        logger.info("Succesfuly opened and read the query_hot_logs.log file for %s" % (dms))
+
+        run_id = 0
+        flag = True
+        for each in all_lines:
+            if each[0]=="#":
+                run_id+=1
+                flag = True
+                continue;
+            if flag:
+                query_no = int(each.split("Query ")[1].split("=")[0])
+                flag = False
+            else:
+                try:
+                    csv_query.append([directory_maps[dms], str(run_id), "query_hot",\
+                     str(query_no), str(int(each.strip()))])
+                    flag = True
+                except Exception as e:
+                    print(e)
+        logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
+
 
     
     for each in csv_query:
@@ -155,6 +184,14 @@ def g_sparksee(runs, xmlFile):
     /tmp/HelloWorld.gdb %s \
     /var/log/sparksee/query_cold_logs.log /scripts/sparksee/SparkseeQueryCold.groovy" % (runs, xmlFile))
 
+    logger.info("Running the command : /scripts/sparksee/SparkseeQuery.sh %s \
+    /tmp/HelloWorld.gdb %s \
+    /var/log/sparksee/query_hot_logs.log /scripts/sparksee/SparkseeQueryHot.groovy" % (runs, xmlFile))
+
+    os.system("/scripts/sparksee/SparkseeQuery.sh %s \
+    /tmp/HelloWorld.gdb %s \
+    /var/log/sparksee/query_hot_logs.log /scripts/sparksee/SparkseeQueryHot.groovy" % (runs, xmlFile))
+
     logger.info("Gathering the info and putting it in a csv file")
     #Gather the data and put it in a csv format
     gather_data_graph_dms("g_sparksee")
@@ -206,6 +243,7 @@ def g_orient(runs, xmlFile):
     /tmp/orient_query.gdb %s /scripts/orient/OrientQueryCold.groovy \
     /var/log/orient/query_cold_logs.log" % (runs, xmlFile))
 
+
     logger.info("Gathering the info and putting it in a csv file")
     gather_data_graph_dms("g_orient")
     logger.info("*"*80)
@@ -233,6 +271,15 @@ def g_neo4j(runs, xmlFile):
     /tmp/neo4j_Query.gdb %s \
     /var/log/neo4j/query_cold_logs.log /scripts/neo4j/Neo4jQueryCold.groovy" % (runs, xmlFile))
     
+    logger.info("Running the command : /scripts/neo4j/Neo4jQuery.sh %s \
+    /tmp/neo4j_Query.gdb %s \
+    /var/log/neo4j/query_hot_logs.log /scripts/neo4j/Neo4jQueryHot.groovy" % (runs, xmlFile))
+
+    os.system("/scripts/neo4j/Neo4jQuery.sh %s \
+    /tmp/neo4j_Query.gdb %s \
+    /var/log/neo4j/query_hot_logs.log /scripts/neo4j/Neo4jQueryHot.groovy" % (runs, xmlFile))
+
+
     logger.info("Gathering the info and putting it in a csv file")
     gather_data_graph_dms("g_neo4j")
     logger.info("*"*80)
