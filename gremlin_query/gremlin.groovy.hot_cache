@@ -1,0 +1,11 @@
+	"sync".execute()
+	println "======Query 1======"
+	s = System.currentTimeMillis();
+	x.V.count() 
+	println (System.currentTimeMillis() - s)
+	
+	"sync".execute().text
+	println "======Query 2======"
+	s = System.currentTimeMillis();
+	x.E.count()
+	println (System.currentTimeMillis() - s)

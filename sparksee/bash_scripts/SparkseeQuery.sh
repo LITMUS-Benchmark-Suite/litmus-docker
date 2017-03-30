@@ -3,10 +3,11 @@
 #The second argument is the location where we want to create a db.
 #The third argument is the location of the XML file
 #The fourth argument corresponds to the location of the log file
+#The fifth argument corresponds to the location of the gremlin groovy file
 
 #All the queries have to be written in the SparkseeQuery.groovy file itself.
 
-/gremlin-groovy/bin/gremlin.sh -e /scripts/sparksee/SparkseeQuery.groovy $2 $3 $1 >> $4
+/gremlin-groovy/bin/gremlin.sh -e $5 $2 $3 $1 >> $4
 
 # Example Run
 # ./SparkseeQuery.sh 5 ./HelloWorld.gdb ../../gremlin-groovy/data/graph-example-2.xml logs.txt

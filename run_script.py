@@ -40,8 +40,8 @@ def gather_data_graph_dms(dms):
     for each in all_lines:
         try:
             csv_load.append([directory_maps[dms], str(run_id), "load", str(int(each.strip()))])
-        except Exception as e:
             run_id+=1
+        except Exception as e:
             print(e)
 
     logger.info("Succesfuly processed the load_logs.log file for %s" % (dms))
@@ -50,10 +50,10 @@ def gather_data_graph_dms(dms):
         print(",".join(each))
 
     logger.info("Opening the query_logs.log file for %s" % (dms))
-    file_handler = open("/var/log/%s/query_logs.log" % (directory_maps[dms]), "r")
+    file_handler = open("/var/log/%s/query_cold_logs.log" % (directory_maps[dms]), "r")
     all_lines = file_handler.readlines()[5:]
     file_handler.close()
-    logger.info("Succesfuly opened and read the query_logs.log file for %s" % (dms))
+    logger.info("Succesfuly opened and read the query_cold_logs.log file for %s" % (dms))
 
     run_id = 0
     csv_query = []
@@ -73,7 +73,7 @@ def gather_data_graph_dms(dms):
                 flag = True
             except Exception as e:
                 print(e)
-    logger.info("Succesfuly processed the query_logs.log file for %s" % (dms))
+    logger.info("Succesfuly processed the query_cold_logs.log file for %s" % (dms))
 
     
     for each in csv_query:
@@ -148,12 +148,12 @@ def g_sparksee(runs, xmlFile):
 
     logger.info("Running the command : /scripts/sparksee/SparkseeQuery.sh %s \
     /tmp/HelloWorld.gdb %s \
-    /var/log/sparksee/query_logs.log" % (runs, xmlFile))
+    /var/log/sparksee/query_cold_logs.log /scripts/sparksee/SparkseeQueryCold.groovy" % (runs, xmlFile))
 
     #Querying the database
     os.system("/scripts/sparksee/SparkseeQuery.sh %s \
     /tmp/HelloWorld.gdb %s \
-    /var/log/sparksee/query_logs.log" % (runs, xmlFile))
+    /var/log/sparksee/query_cold_logs.log /scripts/sparksee/SparkseeQueryCold.groovy" % (runs, xmlFile))
 
     logger.info("Gathering the info and putting it in a csv file")
     #Gather the data and put it in a csv format
@@ -198,13 +198,13 @@ def g_orient(runs, xmlFile):
     /var/log/orient/load_logs.log" % (runs, xmlFile))
 
     logger.info("Running the command : /scripts/orient/OrientQuery.sh %s \
-    /tmp/orient_query.gdb %s /scripts/orient/OrientQuery.groovy \
-    /var/log/orient/query_logs.log" % (runs, xmlFile))
+    /tmp/orient_query.gdb %s /scripts/orient/OrientQueryCold.groovy \
+    /var/log/orient/query_cold_logs.log" % (runs, xmlFile))
 
     #Querying the database
     os.system("/scripts/orient/OrientQuery.sh %s \
-    /tmp/orient_query.gdb %s /scripts/orient/OrientQuery.groovy \
-    /var/log/orient/query_logs.log" % (runs, xmlFile))
+    /tmp/orient_query.gdb %s /scripts/orient/OrientQueryCold.groovy \
+    /var/log/orient/query_cold_logs.log" % (runs, xmlFile))
 
     logger.info("Gathering the info and putting it in a csv file")
     gather_data_graph_dms("g_orient")
@@ -226,12 +226,12 @@ def g_neo4j(runs, xmlFile):
 
     logger.info("Running the command : /scripts/neo4j/Neo4jQuery.sh %s \
     /tmp/neo4j_Query.gdb %s \
-    /var/log/neo4j/query_logs.log" % (runs, xmlFile))
+    /var/log/neo4j/query_cold_logs.log /scripts/neo4j/Neo4jQueryCold.groovy" % (runs, xmlFile))
 
     #Querying the database
     os.system("/scripts/neo4j/Neo4jQuery.sh %s \
     /tmp/neo4j_Query.gdb %s \
-    /var/log/neo4j/query_logs.log" % (runs, xmlFile))
+    /var/log/neo4j/query_cold_logs.log /scripts/neo4j/Neo4jQueryCold.groovy" % (runs, xmlFile))
     
     logger.info("Gathering the info and putting it in a csv file")
     gather_data_graph_dms("g_neo4j")
@@ -306,7 +306,8 @@ def create_log_files(list_to_benchmark):
     logger.info("Creating empty log files for all the DMS")
     for each in list_to_benchmark:
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/load_logs.log'))
-        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/query_logs.log'))
+        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/query_cold_logs.log'))
+        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/query_hot_logs.log'))
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/index_logs.log'))
 
     logger.info("Created empty log files for all the DMS")
@@ -351,15 +352,17 @@ def generate_rdf_queries(rdf_query_location):
         for Jena (/jena_queries) and Virtuoso (/virtuoso_queries)" % (rdf_query_location))
     logger.info("*"*80)
 
-def generate_graph_queries(gremlin_query_location):
+def generate_graph_queries(gremlin_query_location_cold, gremlin_query_location_hot = None):
     """This function will generate the custom groovy files for all 
         the three graph based dbs"""
+    if gremlin_query_location_hot is None:
+        gremlin_query_location_hot = gremlin_query_location_cold
     logger.info("*"*80)
-    logger.info("Creating gremlin query files from gremlin.groovy file present at %s \
-        for Orient, Neo4j and Sparksee" % (gremlin_query_location))
+    logger.info("Creating gremlin query files from gremlin_cold.groovy file present at %s \
+        for Gremlin cold cache for Orient, Neo4j and Sparksee" % (gremlin_query_location_cold))
     
-    gremlin_queries = open(gremlin_query_location, "r").read()
-    sparksee_filehandler = open("/scripts/sparksee/SparkseeQuery.groovy", "w")
+    gremlin_queries = open(gremlin_query_location_cold, "r").read()
+    sparksee_filehandler = open("/scripts/sparksee/SparkseeQueryCold.groovy", "w")
     sparksee_filehandler.write("""import com.tinkerpop.blueprints.impls.sparksee.*
 
 x = new SparkseeGraph(args[0])
@@ -380,7 +383,7 @@ for (i in 1..no_of_times) {
 x.shutdown()""");
     sparksee_filehandler.close()
 
-    neo4j_filehandler = open("/scripts/neo4j/Neo4jQuery.groovy", "w")
+    neo4j_filehandler = open("/scripts/neo4j/Neo4jQueryCold.groovy", "w")
     neo4j_filehandler.write("""x = new Neo4jGraph(args[0])
 println "===============Loading the Graph Model============"
 loadModel = System.currentTimeMillis()
@@ -399,7 +402,7 @@ for (i in 1..no_of_times) {
 x.shutdown()""")
     neo4j_filehandler.close()    
 
-    orient_filehandler = open("/scripts/orient/OrientQuery.groovy", "w")
+    orient_filehandler = open("/scripts/orient/OrientQueryCold.groovy", "w")
     orient_filehandler.write("""println "===============Loading the Graph Model============"
 loadModel = System.currentTimeMillis()
 x = new OrientGraph("memory:"+args[0])
@@ -417,9 +420,77 @@ for (i in 1..no_of_times) {
     orient_filehandler.write("""}
 x.shutdown()""")
     orient_filehandler.close()
+
+
+    gremlin_queries = open(gremlin_query_location_hot, "r").read()
+    sparksee_filehandler = open("/scripts/sparksee/SparkseeQueryHot.groovy", "w")
+    sparksee_filehandler.write("""import com.tinkerpop.blueprints.impls.sparksee.*
+
+x = new SparkseeGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "Dataset is " + args[1]
+no_of_times = Integer.parseInt(args[2])
+println "==============Running The Queries=========="
+for (i in 1..no_of_times) {
+    println "################Run "+i+"##################"
+""")
+    sparksee_filehandler.write(gremlin_queries)
+    sparksee_filehandler.write("""}
+x.shutdown()""");
+    sparksee_filehandler.close()
+
+    neo4j_filehandler = open("/scripts/neo4j/Neo4jQueryHot.groovy", "w")
+    neo4j_filehandler.write("""x = new Neo4jGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+
+no_of_times = Integer.parseInt(args[2])
+println "==============Starting to Run The Queries=========="
+for (i in 1..no_of_times) {
+    println "################Run "+i+"##################"
+""");
+    neo4j_filehandler.write(gremlin_queries)
+    neo4j_filehandler.write("""}
+x.shutdown()""")
+    neo4j_filehandler.close()    
+
+    orient_filehandler = open("/scripts/orient/OrientQueryHot.groovy", "w")
+    orient_filehandler.write("""println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x = new OrientGraph("memory:"+args[0])
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+
+no_of_times = Integer.parseInt(args[2])
+println "==============Starting to Run The Queries=========="
+for (i in 1..no_of_times) {
+    println "################Run "+i+"##################"
+""")
+    orient_filehandler.write(gremlin_queries)
+    orient_filehandler.write("""}
+x.shutdown()""")
+    orient_filehandler.close()
+
+
+
+
+    logger.info("Creating gremlin query files from gremlin_hot.groovy file present at %s \
+        for Hot Cache for Orient, Neo4j and Sparksee" % (gremlin_query_location_hot))
+
+
+
     logger.info("*"*80)
-    logger.info("Creating gremlin query files from gremlin.groovy file present at %s \
-        for Orient, Neo4j and Sparksee" % (gremlin_query_location))
 
 def sanity_checks(args):
     logger.info("*"*80)
@@ -460,11 +531,12 @@ def sanity_checks(args):
                 argument does not exist")
         return False
     else:
-        s = glob.glob(args["graph_queries"]+"/gremlin.groovy")
-        if len(s)!=1:
-            print("Please make sure that the file gremlin.groovy is present in the dataset")
-            logger.error("The directory supplied as an argument needs to have a file \
-                with the name gremlin.groovy")
+        s = glob.glob(args["graph_queries"]+"/gremlin.groovy.*")
+        if len(s)!=2:
+            print("Please make sure that the file gremlin.groovy.hot_cache and \
+                    gremlin.groovy.cold_cache is present in the dataset")
+            logger.error("The directory supplied as an argument needs to have \
+            two files with the name gremlin.groovy.hot_cache and gremlin.groovy.cold_cache")
 
             return False
 
@@ -530,7 +602,8 @@ if __name__ == "__main__":
         % (total_runs, args['graph_datafile'], args['graph_queries'], args['rdf_datafile'], args['rdf_queries']))
     
     if args['graph']:
-        generate_graph_queries(args['graph_queries']+"/gremlin.groovy")
+        generate_graph_queries(args['graph_queries']+"/gremlin.groovy.cold_cache", \
+                args['graph_queries']+"/gremlin.groovy.hot_cache")
         name_of_graph = glob.glob(args['graph_datafile'] + "/*")
         name_of_graph = name_of_graph[0]
         g_sparksee(total_runs, name_of_graph)
