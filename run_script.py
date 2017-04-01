@@ -176,20 +176,20 @@ def g_sparksee(runs, xmlFile):
     /var/log/sparksee/load_logs.log" % (runs, xmlFile))
 
     logger.info("Running the command : /scripts/sparksee/SparkseeQuery.sh %s \
-    /tmp/HelloWorld.gdb %s \
+    /tmp/HelloWorld.gdb.sparksee.cold %s \
     /var/log/sparksee/query_cold_logs.log /scripts/sparksee/SparkseeQueryCold.groovy" % (runs, xmlFile))
 
     #Querying the database
     os.system("/scripts/sparksee/SparkseeQuery.sh %s \
-    /tmp/HelloWorld.gdb %s \
+    /tmp/HelloWorld.gdb.sparksee.cold %s \
     /var/log/sparksee/query_cold_logs.log /scripts/sparksee/SparkseeQueryCold.groovy" % (runs, xmlFile))
 
     logger.info("Running the command : /scripts/sparksee/SparkseeQuery.sh %s \
-    /tmp/HelloWorld.gdb %s \
+    /tmp/HelloWorld.gdb.sparksee.hot %s \
     /var/log/sparksee/query_hot_logs.log /scripts/sparksee/SparkseeQueryHot.groovy" % (runs, xmlFile))
 
     os.system("/scripts/sparksee/SparkseeQuery.sh %s \
-    /tmp/HelloWorld.gdb %s \
+    /tmp/HelloWorld.gdb.sparksee.hot %s \
     /var/log/sparksee/query_hot_logs.log /scripts/sparksee/SparkseeQueryHot.groovy" % (runs, xmlFile))
 
     logger.info("Gathering the info and putting it in a csv file")
@@ -272,20 +272,20 @@ def g_orient(runs, xmlFile):
     /var/log/orient/load_logs.log" % (runs, xmlFile))
 
     logger.info("Running the command : /scripts/orient/OrientQuery.sh %s \
-    /tmp/orient_query.gdb %s /scripts/orient/OrientQueryCold.groovy \
+    /tmp/orient_query_cold.gdb %s /scripts/orient/OrientQueryCold.groovy \
     /var/log/orient/query_cold_logs.log" % (runs, xmlFile))
 
     #Querying the database
     os.system("/scripts/orient/OrientQuery.sh %s \
-    /tmp/orient_query.gdb %s /scripts/orient/OrientQueryCold.groovy \
+    /tmp/orient_query_cold.gdb %s /scripts/orient/OrientQueryCold.groovy \
     /var/log/orient/query_cold_logs.log" % (runs, xmlFile))
 
     logger.info("Running the command : /scripts/orient/OrientQuery.sh %s \
-    /tmp/orient_query.gdb %s /scripts/orient/OrientQueryHot.groovy \
+    /tmp/orient_query_hot.gdb %s /scripts/orient/OrientQueryHot.groovy \
     /var/log/orient/query_hot_logs.log" % (runs, xmlFile))
 
     os.system("/scripts/orient/OrientQuery.sh %s \
-    /tmp/orient_query.gdb %s /scripts/orient/OrientQueryHot.groovy \
+    /tmp/orient_query_hot.gdb %s /scripts/orient/OrientQueryHot.groovy \
     /var/log/orient/query_hot_logs.log" % (runs, xmlFile))
 
 
@@ -309,20 +309,20 @@ def g_neo4j(runs, xmlFile):
     /var/log/neo4j/load_logs.log" % (runs, xmlFile))
 
     logger.info("Running the command : /scripts/neo4j/Neo4jQuery.sh %s \
-    /tmp/neo4j_Query.gdb %s \
+    /tmp/neo4j_Query.gdb.cold %s \
     /var/log/neo4j/query_cold_logs.log /scripts/neo4j/Neo4jQueryCold.groovy" % (runs, xmlFile))
 
     #Querying the database
     os.system("/scripts/neo4j/Neo4jQuery.sh %s \
-    /tmp/neo4j_Query.gdb %s \
+    /tmp/neo4j_Query.gdb.cold %s \
     /var/log/neo4j/query_cold_logs.log /scripts/neo4j/Neo4jQueryCold.groovy" % (runs, xmlFile))
     
     logger.info("Running the command : /scripts/neo4j/Neo4jQuery.sh %s \
-    /tmp/neo4j_Query.gdb %s \
+    /tmp/neo4j_Query.gdb.hot %s \
     /var/log/neo4j/query_hot_logs.log /scripts/neo4j/Neo4jQueryHot.groovy" % (runs, xmlFile))
 
     os.system("/scripts/neo4j/Neo4jQuery.sh %s \
-    /tmp/neo4j_Query.gdb %s \
+    /tmp/neo4j_Query.gdb.hot %s \
     /var/log/neo4j/query_hot_logs.log /scripts/neo4j/Neo4jQueryHot.groovy" % (runs, xmlFile))
 
 
@@ -741,8 +741,8 @@ if __name__ == "__main__":
         name_of_graph = glob.glob(args['graph_datafile'] + "/*")
         name_of_graph = name_of_graph[0]
         g_sparksee(total_runs, name_of_graph)
-#        g_orient(total_runs, name_of_graph)
-#        g_neo4j(total_runs, name_of_graph)
+        g_orient(total_runs, name_of_graph)
+        g_neo4j(total_runs, name_of_graph)
         g_tinker(total_runs, name_of_graph)
     if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
