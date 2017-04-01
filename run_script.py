@@ -9,7 +9,7 @@ logging.basicConfig(filename = "Litmus_Benchmark_log.log", level = logging.INFO)
 logger = logging.getLogger(__name__)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-graph_based = ['g_sparksee', 'g_orient', 'g_neo4j' ]
+graph_based = ['g_sparksee', 'g_orient', 'g_neo4j', 'g_tinker' ]
 
 rdf_based = ['r_rdf3x', 'r_monet', 'r_jena', 'r_arq', 'r_virtuoso' ]
 
@@ -17,6 +17,7 @@ directory_maps = { \
     'g_sparksee':'sparksee', \
     'g_orient' : 'orient', \
     'g_neo4j' : 'neo4j', \
+    'g_tinker' : 'tinker', \
     'r_rdf3x' : 'rdf3x', \
     'r_monet' : 'monet', \
     'r_jena' : 'jena', \
@@ -194,6 +195,43 @@ def g_sparksee(runs, xmlFile):
     logger.info("Gathering the info and putting it in a csv file")
     #Gather the data and put it in a csv format
     gather_data_graph_dms("g_sparksee")
+    logger.info("*"*80)
+
+def g_tinker(runs, xmlFile):
+
+    logger.info("*"*80)
+    logger.info("Running the scripts for the TinkerGraph DMS")
+    logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
+    logger.info("Running the command : /scripts/tinker/TinkerLoad.sh %s \
+    /tmp/tinker.gdb %s \
+    /var/log/tinker/load_logs.log" % (runs, xmlFile))
+    
+    
+    #Loading the database
+    os.system("/scripts/tinker/TinkerLoad.sh %s \
+    /tmp/tinker.gdb %s \
+    /var/log/tinker/load_logs.log" % (runs, xmlFile))
+
+    logger.info("Running the command : /scripts/tinker/TinkerQuery.sh %s \
+    /tmp/HelloWorld.gdb.tinker.cold %s \
+    /var/log/tinker/query_cold_logs.log /scripts/tinker/TinkerQueryCold.groovy" % (runs, xmlFile))
+
+    #Querying the database
+    os.system("/scripts/tinker/TinkerQuery.sh %s \
+    /tmp/HelloWorld.gdb.tinker.cold %s \
+    /var/log/tinker/query_cold_logs.log /scripts/tinker/TinkerQueryCold.groovy" % (runs, xmlFile))
+
+    logger.info("Running the command : /scripts/tinker/TinkerQuery.sh %s \
+    /tmp/HelloWorld.gdb.tinker.hot %s \
+    /var/log/tinker/query_hot_logs.log /scripts/tinker/TinkerQueryHot.groovy" % (runs, xmlFile))
+
+    os.system("/scripts/tinker/TinkerQuery.sh %s \
+    /tmp/HelloWorld.gdb.tinker.hot %s \
+    /var/log/tinker/query_hot_logs.log /scripts/tinker/TinkerQueryHot.groovy" % (runs, xmlFile))
+
+    logger.info("Gathering the info and putting it in a csv file")
+    #Gather the data and put it in a csv format
+    gather_data_graph_dms("g_tinker")
     logger.info("*"*80)
 
 
@@ -438,6 +476,26 @@ for (i in 1..no_of_times) {
 x.shutdown()""");
     sparksee_filehandler.close()
 
+    tinker_filehandler = open("/scripts/tinker/TinkerQueryCold.groovy", "w")
+    tinker_filehandler.write("""x = new TinkerGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "Dataset is " + args[1]
+no_of_times = Integer.parseInt(args[2])
+println "==============Running The Queries=========="
+for (i in 1..no_of_times) {
+    println "################Run "+i+"##################"
+""")
+    tinker_filehandler.write(gremlin_queries)
+    tinker_filehandler.write("""}
+x.shutdown()""");
+    tinker_filehandler.close()
+
+
     neo4j_filehandler = open("/scripts/neo4j/Neo4jQueryCold.groovy", "w")
     neo4j_filehandler.write("""x = new Neo4jGraph(args[0])
 println "===============Loading the Graph Model============"
@@ -498,6 +556,27 @@ for (i in 1..no_of_times) {
     sparksee_filehandler.write("""}
 x.shutdown()""");
     sparksee_filehandler.close()
+
+
+    tinker_filehandler = open("/scripts/tinker/TinkerQueryHot.groovy", "w")
+    tinker_filehandler.write("""
+x = new TinkerGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "Dataset is " + args[1]
+no_of_times = Integer.parseInt(args[2])
+println "==============Running The Queries=========="
+for (i in 1..no_of_times) {
+    println "################Run "+i+"##################"
+""")
+    tinker_filehandler.write(gremlin_queries)
+    tinker_filehandler.write("""}
+x.shutdown()""");
+    tinker_filehandler.close()
 
     neo4j_filehandler = open("/scripts/neo4j/Neo4jQueryHot.groovy", "w")
     neo4j_filehandler.write("""x = new Neo4jGraph(args[0])
@@ -662,8 +741,9 @@ if __name__ == "__main__":
         name_of_graph = glob.glob(args['graph_datafile'] + "/*")
         name_of_graph = name_of_graph[0]
         g_sparksee(total_runs, name_of_graph)
-        g_orient(total_runs, name_of_graph)
-        g_neo4j(total_runs, name_of_graph)
+#        g_orient(total_runs, name_of_graph)
+#        g_neo4j(total_runs, name_of_graph)
+        g_tinker(total_runs, name_of_graph)
     if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.ttl")

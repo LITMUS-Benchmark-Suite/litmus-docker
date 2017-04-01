@@ -76,6 +76,11 @@ RUN mkdir /var/log/jena
 # create directory for arq logs
 RUN mkdir /var/log/arq
 
+# create directory for tinker logs
+RUN mkdir /var/log/tinker
+
+# create directory for virtuoso logs
+RUN mkdir /var/log/virtuoso
 
 
 # create directory and add data
@@ -85,6 +90,11 @@ ADD ./data/* /graph_data/
 
 # create a general directory for all scripts
 RUN mkdir scripts
+
+#create directory for Tinker
+RUN mkdir scripts/tinker/
+ADD ./tinker/* /scripts/tinker/
+
 
 #create directory for sparksee
 RUN mkdir scripts/sparksee/
@@ -117,8 +127,6 @@ RUN mkdir scripts/virtuoso/
 ADD ./openlink/* /scripts/virtuoso/
 
 
-# create directory for virtuoso logs
-RUN mkdir /var/log/virtuoso
 
 #Copy all the graph_files
 #RUN mkdir /graph_data
@@ -138,5 +146,5 @@ ADD ./gremlin_query/* /gremlin_query/
 
 RUN apt-get install time
 
-CMD python3 run_script.py -a -n 2 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query 
+CMD python3 run_script.py -g -n 2 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && ls /tmp/
 #CMD ls /apache-jena-3.2.0/bin/*
