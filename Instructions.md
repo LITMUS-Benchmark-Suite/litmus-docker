@@ -13,7 +13,12 @@ There should be a single graph data file which should be present in the director
 * They should have a **.sparql** extension.
 
 ## The Gremlin queries
-The gremlin queries should be kept in a single file in the **gremlin_query** directory and should have the name **gremlin.groovy**. An example file for the same has been included to help you out about how the query file should exactly look like.
+The gremlin queries should be kept in the **gremlin_query** directory.
+There are two query files which are in the directory.
+* gremlin.groovy.cold_cache : When we run ```bash 
+echo 3 > /proc/sys/vm/drop_caches``` after every query.
+* gremlin.groovy.hot_cache
+An initial version of both the files have been kept for your reference.
 The variable x is your Graph DMS object. And for each query you are supposed to write down the accompanying lines of codes. There are two example queries in the given file. The first query is from lines 1 to 6. The actual query is on line 5.
 
 Once all these procedures have been followed, you can build the docker using the ```docker build``` command.
