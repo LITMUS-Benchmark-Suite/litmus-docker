@@ -190,11 +190,32 @@ def gather_data_rdf_dms(dms):
     for each in csv_query:
         print(",".join(each))
 
+    return (csv_load, csv_query)
+
 def graph_create_csv(filename_load, filename_query, list_of_dbs):
     load_logs = []
     query_logs = []
     for each in list_of_dbs:
         load, query = gather_data_graph_dms(each)
+        load_logs = load_logs + load
+        query_logs = query_logs + query
+    load_handler = open(filename_load, "w")
+    load_handler.write("dms,run_id,load_type,time\n")
+    for each in load_logs:
+        load_handler.write(",".join(each) + "\n")
+    load_handler.close()
+
+    query_handler = open(filename_query, "w")
+    query_handler.write("dms,run_id,query_type,query_id,time\n")
+    for each in query_logs:
+        query_handler.write(",".join(each) + "\n")
+    query_handler.close()
+
+def rdf_create_csv(filename_load, filename_query, list_of_dbs):
+    load_logs = []
+    query_logs = []
+    for each in list_of_dbs:
+        load, query = gather_data_rdf_dms(each)
         load_logs = load_logs + load
         query_logs = query_logs + query
     load_handler = open(filename_load, "w")
@@ -312,8 +333,8 @@ def r_rdf3x(runs, queryLocations, dataFile):
     os.system("/scripts/rdf3x/RDF3xExecuteHotCache.sh /tmp rdf3x_graph_hot \
     %s %s /var/log/rdf3x/query_hot_logs.log %s" % (dataFile, queryLocations, runs)) 
     
-    logger.info("Gathering the info and putting it in a csv file")        
-    gather_data_rdf_dms("r_rdf3x")
+    #logger.info("Gathering the info and putting it in a csv file")        
+    #gather_data_rdf_dms("r_rdf3x")
     logger.info("*"*80)
 
 def g_orient(runs, xmlFile):
@@ -419,8 +440,8 @@ def r_jena(runs, queryLocation, dataFile):
     os.system("/scripts/jena/JenaTDBExecuteColdCache.sh /tmp/ jena_graph_cold \
     %s %s /var/log/jena/query_cold_logs.log %s" % (dataFile, queryLocation, runs))
 
-    logger.info("Gathering the info and putting it in a csv file")        
-    gather_data_rdf_dms('r_jena')
+    #logger.info("Gathering the info and putting it in a csv file")        
+    #gather_data_rdf_dms('r_jena')
     logger.info("*"*80)
 
 
@@ -462,8 +483,8 @@ def r_virtuoso(runs, queryLocation, dataFileLocation):
 
     
     logger.info("Gathering the info and putting it in a csv file")        
-    gather_data_rdf_dms('r_virtuoso')    
-    logger.info("*"*80)
+    #gather_data_rdf_dms('r_virtuoso')    
+    #logger.info("*"*80)
 
 def create_log_files(list_to_benchmark):
     logger.info("*"*80)
@@ -825,4 +846,5 @@ if __name__ == "__main__":
         r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
         r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
         r_jena(total_runs, "/jena_queries", name_of_graph)
+        rdf_create_csv("rdf.load.logs", "rdf.query.logs", rdf_based)
 
