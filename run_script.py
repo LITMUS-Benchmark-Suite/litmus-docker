@@ -47,8 +47,8 @@ def gather_data_graph_dms(dms):
 
     logger.info("Succesfuly processed the load_logs.log file for %s" % (dms))
 
-    for each in csv_load:
-        print(",".join(each))
+    #for each in csv_load:
+    #    print(",".join(each))
 
     logger.info("Opening the query_cold_logs.log file for %s" % (dms))
     file_handler = open("/var/log/%s/query_cold_logs.log" % (directory_maps[dms]), "r")
@@ -105,8 +105,9 @@ def gather_data_graph_dms(dms):
 
 
     
-    for each in csv_query:
-        print(",".join(each))
+    #for each in csv_query:
+    #    print(",".join(each))
+    return (csv_load, csv_query)
 
 def gather_data_rdf_dms(dms):
     #Gather the data and put it in a csv format
@@ -159,7 +160,27 @@ def gather_data_rdf_dms(dms):
     for each in csv_query:
         print(",".join(each))
 
+def graph_create_csv(filename_load, filename_query, list_of_dbs):
+    load_logs = []
+    query_logs = []
+    for each in list_of_dbs:
+        load, query = gather_data_graph_dms(each)
+        load_logs = load_logs + load
+        query_logs = query_logs + query
+    load_handler = open(filename_load, "w")
+    load_handler.write("dms,run_id,load_type,time\n")
+    for each in load_logs:
+        load_handler.write(",".join(each) + "\n")
+    load_handler.close()
 
+    query_handler = open(filename_query, "w")
+    query_handler.write("dms,run_id,query_type,query_id,time\n")
+    for each in query_logs:
+        query_handler.write(",".join(each) + "\n")
+    query_handler.close()
+
+def process_and_plot_graph(filename_load, filename_query):
+    
 def g_sparksee(runs, xmlFile):
 
     logger.info("*"*80)
@@ -192,9 +213,9 @@ def g_sparksee(runs, xmlFile):
     /tmp/HelloWorld.gdb.sparksee.hot %s \
     /var/log/sparksee/query_hot_logs.log /scripts/sparksee/SparkseeQueryHot.groovy" % (runs, xmlFile))
 
-    logger.info("Gathering the info and putting it in a csv file")
+    #logger.info("Gathering the info and putting it in a csv file")
     #Gather the data and put it in a csv format
-    gather_data_graph_dms("g_sparksee")
+    #gather_data_graph_dms("g_sparksee")
     logger.info("*"*80)
 
 def g_tinker(runs, xmlFile):
@@ -231,7 +252,7 @@ def g_tinker(runs, xmlFile):
 
     logger.info("Gathering the info and putting it in a csv file")
     #Gather the data and put it in a csv format
-    gather_data_graph_dms("g_tinker")
+    #gather_data_graph_dms("g_tinker")
     logger.info("*"*80)
 
 
@@ -290,8 +311,8 @@ def g_orient(runs, xmlFile):
 
 
 
-    logger.info("Gathering the info and putting it in a csv file")
-    gather_data_graph_dms("g_orient")
+    #logger.info("Gathering the info and putting it in a csv file")
+    #gather_data_graph_dms("g_orient")
     logger.info("*"*80)
 
 
@@ -326,8 +347,8 @@ def g_neo4j(runs, xmlFile):
     /var/log/neo4j/query_hot_logs.log /scripts/neo4j/Neo4jQueryHot.groovy" % (runs, xmlFile))
 
 
-    logger.info("Gathering the info and putting it in a csv file")
-    gather_data_graph_dms("g_neo4j")
+    #logger.info("Gathering the info and putting it in a csv file")
+    #gather_data_graph_dms("g_neo4j")
     logger.info("*"*80)
 
 
@@ -744,6 +765,7 @@ if __name__ == "__main__":
         g_orient(total_runs, name_of_graph)
         g_neo4j(total_runs, name_of_graph)
         g_tinker(total_runs, name_of_graph)
+        graph_create_csv("graph.load.logs", "graph.query.logs", graph_based)
     if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.ttl")
