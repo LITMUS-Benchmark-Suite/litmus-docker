@@ -1,0 +1,9 @@
+dms,run_id,load_type,time
+sparksee,1,load,230
+sparksee,2,load,262
+orient,1,load,274
+orient,2,load,222
+neo4j,1,load,256
+neo4j,2,load,266
+tinker,1,load,186
+tinker,2,load,197
