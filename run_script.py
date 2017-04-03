@@ -179,7 +179,6 @@ def graph_create_csv(filename_load, filename_query, list_of_dbs):
         query_handler.write(",".join(each) + "\n")
     query_handler.close()
 
-def process_and_plot_graph(filename_load, filename_query):
     
 def g_sparksee(runs, xmlFile):
 
