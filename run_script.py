@@ -130,15 +130,19 @@ def gather_data_rdf_dms(dms):
 
     logger.info("Succesfuly processed the load_logs.log file for %s" % (dms))
 
-    logger.info("Opening the query_logs.log file for %s" % (dms))
-    file_handler = open("/var/log/%s/query_logs.log" % (directory_maps[dms]), "r")
+
+    csv_query = []
+
+
+    logger.info("Opening the query_cold_logs.log file for %s" % (dms))
+    file_handler = open("/var/log/%s/query_cold_logs.log" % (directory_maps[dms]), "r")
     all_lines = file_handler.readlines()
     file_handler.close()
-    logger.info("Succesfuly opened and read the query_logs.log file for %s" % (dms))
+    logger.info("Succesfuly opened and read the query_cold_logs.log file for %s" % (dms))
+
 
     run_id = 0
     query_name = ""
-    csv_query = []
     name_flag = True
     for each in all_lines:
         if each[0]=="*":
@@ -150,11 +154,37 @@ def gather_data_rdf_dms(dms):
             name_flag = False
         else:
             run_id+=1
-            csv_query.append([directory_maps[dms], str(run_id), "query", query_name, \
+            csv_query.append([directory_maps[dms], str(run_id), "query_cold", query_name, \
                     each.strip().split("\t")[2]])
 
-    logger.info("Succesfuly processed the query_logs.log file for %s" % (dms))
+    logger.info("Succesfuly processed the query_cold_logs.log file for %s" % (dms))
     
+
+    logger.info("Opening the query_hot_logs.log file for %s" % (dms))
+    file_handler = open("/var/log/%s/query_hot_logs.log" % (directory_maps[dms]), "r")
+    all_lines = file_handler.readlines()
+    file_handler.close()
+    logger.info("Succesfuly opened and read the query_hot_logs.log file for %s" % (dms))
+
+
+    run_id = 0
+    query_name = ""
+    name_flag = True
+    for each in all_lines:
+        if each[0]=="*":
+            run_id = 0
+            name_flag = True
+            continue;
+        if name_flag:
+            query_name = each.strip()
+            name_flag = False
+        else:
+            run_id+=1
+            csv_query.append([directory_maps[dms], str(run_id), "query_hot", query_name, \
+                    each.strip().split("\t")[2]])
+
+    logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
+        
     for each in csv_load:
         print(",".join(each))
     for each in csv_query:
@@ -267,12 +297,20 @@ def r_rdf3x(runs, queryLocations, dataFile):
     os.system("/scripts/rdf3x/RDF3xLoad.sh %s /tmp rdf3x_graph \
     %s /var/log/rdf3x/load_logs.log" % (runs, dataFile)) 
     
-    logger.info("Running the command : /scripts/rdf3x/RDF3xExecute.sh /tmp rdf3x_graph \
-    %s %s /var/log/rdf3x/query_logs.log %s" % (dataFile, queryLocations, runs))
+    logger.info("Running the command : /scripts/rdf3x/RDF3xExecuteColdCache.sh /tmp rdf3x_graph_cold \
+    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
 
     #Querying the database
-    os.system("/scripts/rdf3x/RDF3xExecute.sh /tmp rdf3x_graph \
-    %s %s /var/log/rdf3x/query_logs.log %s" % (dataFile, queryLocations, runs)) 
+    os.system("/scripts/rdf3x/RDF3xExecuteColdCache.sh /tmp rdf3x_graph_cold \
+    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
+
+
+    logger.info("Running the command : /scripts/rdf3x/RDF3xExecuteHotCache.sh /tmp rdf3x_graph_hot \
+    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
+
+    #Querying the database
+    os.system("/scripts/rdf3x/RDF3xExecuteHotCache.sh /tmp rdf3x_graph_hot \
+    %s %s /var/log/rdf3x/query_hot_logs.log %s" % (dataFile, queryLocations, runs)) 
     
     logger.info("Gathering the info and putting it in a csv file")        
     gather_data_rdf_dms("r_rdf3x")
@@ -367,12 +405,19 @@ def r_jena(runs, queryLocation, dataFile):
     os.system("/scripts/jena/JenaTDBLoad.sh /tmp/ jena_graph \
     %s /var/log/jena/load_logs.log %s" % (dataFile, runs))
     
-    logger.info("Running the command : /scripts/jena/JenaTDBExecute.sh /tmp/ jena_graph \
-    %s %s /var/log/jena/query_logs.log %s" % (dataFile, queryLocation, runs))
+    logger.info("Running the command : /scripts/jena/JenaTDBExecuteHotCache.sh /tmp/ jena_graph_hot \
+    %s %s /var/log/jena/query_hot_logs.log %s" % (dataFile, queryLocation, runs))
 
     #Run the query
-    os.system("/scripts/jena/JenaTDBExecute.sh /tmp/ jena_graph \
-    %s %s /var/log/jena/query_logs.log %s" % (dataFile, queryLocation, runs))
+    os.system("/scripts/jena/JenaTDBExecuteHotCache.sh /tmp/ jena_graph_hot \
+    %s %s /var/log/jena/query_hot_logs.log %s" % (dataFile, queryLocation, runs))
+
+    logger.info("Running the command : /scripts/jena/JenaTDBExecuteColdCache.sh /tmp/ jena_graph_cold \
+    %s %s /var/log/jena/query_cold_logs.log %s" % (dataFile, queryLocation, runs))
+
+    #Run the query
+    os.system("/scripts/jena/JenaTDBExecuteColdCache.sh /tmp/ jena_graph_cold \
+    %s %s /var/log/jena/query_cold_logs.log %s" % (dataFile, queryLocation, runs))
 
     logger.info("Gathering the info and putting it in a csv file")        
     gather_data_rdf_dms('r_jena')
@@ -405,10 +450,16 @@ def r_virtuoso(runs, queryLocation, dataFileLocation):
     # Running the loads
     os.system("/scripts/virtuoso/virtuoso_load.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/load_logs.log %s" %(runs))    
     
-    logger.info("Runing the command /scripts/virtuoso/virtuoso_execute.sh \
-    /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_logs.log %s %s" % (queryLocation, runs))
+    logger.info("Runing the command /scripts/virtuoso/virtuoso_execute_cold.sh \
+    /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_cold_logs.log %s %s" % (queryLocation, runs))
     # Running the queries
-    os.system("/scripts/virtuoso/virtuoso_execute.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_logs.log %s %s" % (queryLocation, runs))    
+    os.system("/scripts/virtuoso/virtuoso_execute_cold.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_cold_logs.log %s %s" % (queryLocation, runs))    
+
+    logger.info("Runing the command /scripts/virtuoso/virtuoso_execute_hot.sh \
+    /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_hot_logs.log %s %s" % (queryLocation, runs))
+    # Running the queries
+    os.system("/scripts/virtuoso/virtuoso_execute_hot.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_hot_logs.log %s %s" % (queryLocation, runs))    
+
     
     logger.info("Gathering the info and putting it in a csv file")        
     gather_data_rdf_dms('r_virtuoso')    
@@ -755,6 +806,7 @@ if __name__ == "__main__":
                 RDF_Query_Location = %s." 
         % (total_runs, args['graph_datafile'], args['graph_queries'], args['rdf_datafile'], args['rdf_queries']))
     
+    create_log_files(final_list)
     if args['graph']:
         generate_graph_queries(args['graph_queries']+"/gremlin.groovy.cold_cache", \
                 args['graph_queries']+"/gremlin.groovy.hot_cache")
@@ -769,7 +821,7 @@ if __name__ == "__main__":
         generate_rdf_queries(args['rdf_queries'])
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.ttl")
         name_of_graph = name_of_graph[0]
-        create_log_files(final_list)
+
         r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
         r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
         r_jena(total_runs, "/jena_queries", name_of_graph)

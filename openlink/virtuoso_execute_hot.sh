@@ -1,0 +1,23 @@
+Virtuoso_isql=$1;
+RESULT_FILE=$2;
+Query_location=$3;
+
+$Virtuoso_isql 1111 dba dba clear.sql> /dev/null 2>> /dev/null;
+$Virtuoso_isql 1111 dba dba prepare.sql> /dev/null 2>> /dev/null;
+$Virtuoso_isql 1111 dba dba load.sql> /dev/null 2>> /dev/null;
+
+for i in `ls $Query_location/*.sparql`; do
+    export BASEN=`basename $i .sparql`;
+
+    echo "***********" >> $RESULT_FILE;
+    echo $BASEN >> $RESULT_FILE;    
+    #echo "------- FLUSHING CACHE -------" >> $RESULT_file;
+    echo $BASEN;
+    for k in `seq $4`; do
+        echo $k;
+        #echo $k >> $RESULT_file;
+        # execute
+        /usr/bin/time -a -o $RESULT_FILE -f "%S\t%U\t%e" $Virtuoso_isql 1111 dba dba $i> /dev/null 2>> /dev/null;
+    done
+done
+
