@@ -60,8 +60,22 @@ def foobar(loadfile, queryfile):
     min_cold_query_data = cold_query_data.groupby(by = ['dms'], as_index = False).min()
     max_cold_query_data = cold_query_data.groupby(by = ['dms'], as_index = False).max()
     
+    if not os.path.exists("/plots/"):
+        os.mkdir("/plots/")
+    
+    save_plot("/plots/")
         
     plt.show()
+
+
+def save_plot(directory):
+    if directory[-1]!="/":
+        directory = directory + "/"
+    for i in plt.get_fignums():
+        print(i)
+        plt.figure(i)
+        plt.savefig(directory + 'figure%d.png' % i)
+
 
 def sanity_check(loadfile, queryfile):
     if not os.path.exists(loadfile):
