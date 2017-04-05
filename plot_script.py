@@ -35,6 +35,8 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
     plt.ylabel("Time (in milliseconds)")
     plt.title("Time taken for running queries on a dataset by the different %s based DMS (Cold Cache)"%(graph_or_rdf))
 
+    
+
     #All data-analysis goes here
     mean_load_time = load_data.groupby(by = ['dms'], as_index = False).mean()
     var_load_time = load_data.groupby(by = ['dms'], as_index = False).var()
@@ -43,7 +45,13 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
     harmean_load_time = load_data.groupby(by = ['dms'], as_index = False).aggregate(har_mean)
     min_load_time = load_data.groupby(by = ['dms'], as_index = False).min()
     max_load_time = load_data.groupby(by = ['dms'], as_index = False).max()
-    
+    df_load_time = pd.DataFrame({'dms':mean_load_time['dms'], \
+            'mean':mean_load_time['time'], 'variance':var_load_time['time'], \
+            'median':median_load_time['time'], 'geom_mean':geomean_load_time['time'], \
+            'har_mean':harmean_load_time['time'], 'min':min_load_time['time'], \
+            'max':max_load_time['time']})
+
+
     mean_hot_query_data = hot_query_data.groupby(by = ['dms'], as_index = False).mean()
     var_hot_query_data = hot_query_data.groupby(by = ['dms'], as_index = False).var()
     median_hot_query_data = hot_query_data.groupby(by = ['dms'], as_index = False).median()
@@ -51,6 +59,11 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
     harmean_hot_query_data = hot_query_data.groupby(by = ['dms'], as_index = False).aggregate(har_mean)
     min_hot_query_data = hot_query_data.groupby(by = ['dms'], as_index = False).min()
     max_hot_query_data = hot_query_data.groupby(by = ['dms'], as_index = False).max()
+    df_hot_query_time = pd.DataFrame({'dms':mean_hot_query_data['dms'], \
+            'mean':mean_hot_query_data['time'], 'variance':var_hot_query_data['time'], \
+            'median':median_hot_query_data['time'], 'geom_mean':geomean_hot_query_data['time'], \
+            'har_mean':harmean_hot_query_data['time'], 'min':min_hot_query_data['time'], \
+            'max':max_hot_query_data['time']})
 
 
     mean_cold_query_data = cold_query_data.groupby(by = ['dms'], as_index = False).mean()
@@ -60,7 +73,21 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
     harmean_cold_query_data = cold_query_data.groupby(by = ['dms'], as_index = False).aggregate(har_mean)
     min_cold_query_data = cold_query_data.groupby(by = ['dms'], as_index = False).min()
     max_cold_query_data = cold_query_data.groupby(by = ['dms'], as_index = False).max()
+    df_cold_query_time = pd.DataFrame({'dms':mean_cold_query_data['dms'], \
+            'mean':mean_cold_query_data['time'], 'variance':var_cold_query_data['time'], \
+            'median':median_cold_query_data['time'], 'geom_mean':geomean_cold_query_data['time'], \
+            'har_mean':harmean_cold_query_data['time'], 'min':min_cold_query_data['time'], \
+            'max':max_cold_query_data['time']})
 
+    save_tables("/tables/", [df_load_time, df_hot_query_time, df_cold_query_time], graph_or_rdf)
+
+def save_tables(directory, l, dms):
+    if directory[-1]!="/":
+        directory = directory + "/"
+    for i in tables:
+        file_handler = open(directory + dms + "_" + str(i) + ".tex")
+        file_handler.write(i.to_latex())
+        file_handler.close()
 
 def save_plot(directory):
     if directory[-1]!="/":
@@ -79,6 +106,13 @@ def sanity_check(loadfile, queryfile):
     if not os.path.exists(queryfile):    
         print("Error: The path for the query csv file does not exist")
         return False
+
+    if not os.path.exists("/plots/"):
+        os.mkdir("/plots/")
+    
+    if not os.path.exists("/tables/"):
+        os.mkdir("/tables/")
+
     """
     if not os.path.exists("/plots"):
         os.mkdir("/plots")
@@ -102,9 +136,7 @@ if __name__ == "__main__" :
     dms_plots(args['load_graph_csv'], args['query_graph_csv'], "Graph")
     dms_plots(args['load_rdf_csv'], args['query_rdf_csv'], "RDF")
 
-    if not os.path.exists("/plots/"):
-        os.mkdir("/plots/")
-    
+
     save_plot("/plots/")
         
     plt.show()
