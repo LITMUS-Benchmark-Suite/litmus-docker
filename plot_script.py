@@ -50,7 +50,7 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
             'median':median_load_time['time'], 'geom_mean':geomean_load_time['time'], \
             'har_mean':harmean_load_time['time'], 'min':min_load_time['time'], \
             'max':max_load_time['time']})
-
+    df_load_time.name = 'load_time'
 
     mean_hot_query_data = hot_query_data.groupby(by = ['dms'], as_index = False).mean()
     var_hot_query_data = hot_query_data.groupby(by = ['dms'], as_index = False).var()
@@ -64,7 +64,7 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
             'median':median_hot_query_data['time'], 'geom_mean':geomean_hot_query_data['time'], \
             'har_mean':harmean_hot_query_data['time'], 'min':min_hot_query_data['time'], \
             'max':max_hot_query_data['time']})
-
+    df_hot_query_time.name = 'hot_query_time'
 
     mean_cold_query_data = cold_query_data.groupby(by = ['dms'], as_index = False).mean()
     var_cold_query_data = cold_query_data.groupby(by = ['dms'], as_index = False).var()
@@ -78,14 +78,15 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
             'median':median_cold_query_data['time'], 'geom_mean':geomean_cold_query_data['time'], \
             'har_mean':harmean_cold_query_data['time'], 'min':min_cold_query_data['time'], \
             'max':max_cold_query_data['time']})
+    df_cold_query_time.name = 'cold_query_time'
 
-    save_tables("/tables/", [df_load_time, df_hot_query_time, df_cold_query_time], graph_or_rdf)
+    save_tables(os.getcwd() + "/tables/", [df_load_time, df_hot_query_time, df_cold_query_time], graph_or_rdf)
 
 def save_tables(directory, l, dms):
     if directory[-1]!="/":
         directory = directory + "/"
-    for i in tables:
-        file_handler = open(directory + dms + "_" + str(i) + ".tex")
+    for i in l:
+        file_handler = open(directory + dms + "_" + i.name + ".tex", "w")
         file_handler.write(i.to_latex())
         file_handler.close()
 
