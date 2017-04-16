@@ -117,9 +117,6 @@ RUN mkdir scripts/jena/
 ADD ./jena/* /scripts/jena/
 
 
-# copying all the scripts
-ADD ./hello_world.py ./
-ADD ./run_script.py ./
 
 
 #Create directory for virtuoso
@@ -144,7 +141,13 @@ ADD ./sparql_query/* /sparql_query/
 RUN mkdir /gremlin_query
 ADD ./gremlin_query/* /gremlin_query/
 
-RUN apt-get install time
+RUN apt-get install -y time
 
-CMD python3 run_script.py -g -n 2 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && ls /tmp/
+RUN apt-get install -y linux-tools-4.4.0-53-generic
+# copying all the scripts
+ADD ./hello_world.py ./
+ADD ./run_script.py ./
+
+
+CMD python3 run_script.py -g -n 2 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && cat /var/log/load_log_perf.log*
 #CMD ls /apache-jena-3.2.0/bin/*
