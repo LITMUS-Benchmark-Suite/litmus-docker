@@ -463,19 +463,19 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile):
 
 
     m = glob.glob(queryLocations + "/*.sparql")
-    for each in m:
-        name_of_file = each.split("/")[-1].split(".")[0]
+    for each_command in m:
+        name_of_file = each_command.split("/")[-1].split(".")[0]
         subprocess.call("echo %s >> /var/log/rdf3x/query_cold_logs.log" % (name_of_file), shell = True)
         for each in range(runs):
-            query_command = "/scripts/rdf3x/RDF3xExecuteColdCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_cold_logs.log %s" % (each)
+            query_command = "/scripts/rdf3x/RDF3xExecuteColdCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_cold_logs.log %s" % (each_command)
             run_perf(query_command, "/var/log/rdf3x/cold_query_log_perf.log.%s" %(name_of_file), clear_cache = True)
     
     m = glob.glob(queryLocations + "/*.sparql")
-    for each in m:
-        name_of_file = each.split("/")[-1].split(".")[0]
+    for each_command in m:
+        name_of_file = each_command.split("/")[-1].split(".")[0]
         subprocess.call("echo %s >> /var/log/rdf3x/query_hot_logs.log" % (name_of_file), shell = True)
         for each in range(runs):
-            query_command = "/scripts/rdf3x/RDF3xExecuteHotCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_hot_logs.log %s" % (each)
+            query_command = "/scripts/rdf3x/RDF3xExecuteHotCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_hot_logs.log %s" % (each_command)
             run_perf(query_command, "/var/log/rdf3x/hot_query_log_perf.log.%s" %(name_of_file))
 
 
@@ -605,25 +605,25 @@ def r_jena(runs, queryLocation, dataFile):
     logger.info("Running the scripts for the Jena DMS")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocation, dataFile))
 
-    logger.info("Running the command : /scripts/jena/JenaTDBLoad.sh /tmp/ jena_graph \
+    logger.info("Running the command : /scripts/jena/JenaTDBLoad.sh /tmp jena_graph \
     %s /var/log/jena/load_logs.log %s" % (dataFile, runs))
  
     #Load the database
-    os.system("/scripts/jena/JenaTDBLoad.sh /tmp/ jena_graph \
+    os.system("/scripts/jena/JenaTDBLoad.sh /tmp jena_graph \
     %s /var/log/jena/load_logs.log %s" % (dataFile, runs))
     
-    logger.info("Running the command : /scripts/jena/JenaTDBExecuteHotCache.sh /tmp/ jena_graph_hot \
+    logger.info("Running the command : /scripts/jena/JenaTDBExecuteHotCache.sh /tmp jena_graph_hot \
     %s %s /var/log/jena/query_hot_logs.log %s" % (dataFile, queryLocation, runs))
 
     #Run the query
-    os.system("/scripts/jena/JenaTDBExecuteHotCache.sh /tmp/ jena_graph_hot \
+    os.system("/scripts/jena/JenaTDBExecuteHotCache.sh /tmp jena_graph_hot \
     %s %s /var/log/jena/query_hot_logs.log %s" % (dataFile, queryLocation, runs))
 
-    logger.info("Running the command : /scripts/jena/JenaTDBExecuteColdCache.sh /tmp/ jena_graph_cold \
+    logger.info("Running the command : /scripts/jena/JenaTDBExecuteColdCache.sh /tmp jena_graph_cold \
     %s %s /var/log/jena/query_cold_logs.log %s" % (dataFile, queryLocation, runs))
 
     #Run the query
-    os.system("/scripts/jena/JenaTDBExecuteColdCache.sh /tmp/ jena_graph_cold \
+    os.system("/scripts/jena/JenaTDBExecuteColdCache.sh /tmp jena_graph_cold \
     %s %s /var/log/jena/query_cold_logs.log %s" % (dataFile, queryLocation, runs))
 
     #logger.info("Gathering the info and putting it in a csv file")        
@@ -633,6 +633,44 @@ def r_jena(runs, queryLocation, dataFile):
 
 def r_arq():
     pass
+
+
+def r_jena_with_perf(runs, queryLocation, dataFile):
+    logger.info("*"*80)
+    logger.info("Running the scripts for the Jena DMS")
+    logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocation, dataFile))
+
+    
+    # Running the loads
+    for each in range(runs):
+        command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_%s %s /var/log/jena/load_logs.log" % (str(each), dataFile)
+        run_perf(command, "/var/log/jena/load_logs_perf.log", clear_cache = True)
+
+    subprocess.call("rm -r /tmp/*")
+
+    command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_hot %s /dev/null" % (dataFile)
+    subprocess.call(command, shell = True)    
+
+    m = glob.glob(queryLocation + "/*.sparql")
+    for each_command in m:
+        name_of_file = each.split("/")[-1].split(".")[0]
+        subprocess.call("echo %s >> /var/log/jena/query_hot_logs.log" % (name_of_file), shell = True)
+        for each in range(runs):
+            command = "/scripts/jena/JenaTDBExecuteHotCachePerf.sh /tmp jena_graph_hot /var/log/jena/query_hot_logs.log %s" % (each_command)
+            run_perf(command, "/var/log/jena/query_hot_logs_perf.log.%s" %(name_of_file))
+
+
+    command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_cold %s /dev/null" % (dataFile)
+    subprocess.call(command, shell = True)    
+
+    m = glob.glob(queryLocation + "/*.sparql")
+    for each_command in m:
+        name_of_file = each.split("/")[-1].split(".")[0]
+        subprocess.call("echo %s >> /var/log/jena/query_cold_logs.log" % (name_of_file), shell = True)
+        for each in range(runs):
+            command = "/scripts/jena/JenaTDBExecuteColdCachePerf.sh /tmp jena_graph_cold /var/log/jena/query_cold_logs.log %s" % (each_command)
+            run_perf(command, "/var/log/jena/query_cold_logs_perf.log.%s" %(name_of_file))
+
 
 def r_virtuoso(runs, queryLocation, dataFileLocation):
     logger.info("*"*80)
@@ -703,19 +741,19 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
     subprocess.call(command, shell = True)
 
     m = glob.glob(queryLocation + "/*.sparql")
-    for each in m:
-        name_of_file = each.split("/")[-1].split(".")[0]
+    for each_command in m:
+        name_of_file = each_command.split("/")[-1].split(".")[0]
         subprocess.call("echo %s >> /var/log/virtuoso/query_hot_logs.log" % (name_of_file), shell = True)
         for each in range(runs):
-            command = "/scripts/virtuoso/virtuoso_execute_hot_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_hot_logs.log %s" % (each)
+            command = "/scripts/virtuoso/virtuoso_execute_hot_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_hot_logs.log %s" % (each_command)
             run_perf(command, "/var/log/virtuoso/query_hot_logs_perf.log.%s" %(name_of_file))
 
     m = glob.glob(queryLocation + "/*.sparql")
-    for each in m:
-        name_of_file = each.split("/")[-1].split(".")[0]
+    for each_command in m:
+        name_of_file = each_command.split("/")[-1].split(".")[0]
         subprocess.call("echo %s >> /var/log/virtuoso/query_cold_logs.log" % (name_of_file), shell = True)
         for each in range(runs):
-            command = "/scripts/virtuoso/virtuoso_execute_cold_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_cold_logs.log %s" % (each)
+            command = "/scripts/virtuoso/virtuoso_execute_cold_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_cold_logs.log %s" % (each_command)
             run_perf(command, "/var/log/virtuoso/query_cold_logs_perf.log.%s" %(name_of_file), clear_cache = True)
 
     
