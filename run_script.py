@@ -5,7 +5,7 @@ import sys
 import time
 import logging
 import subprocess
-
+import re
 
 logging.basicConfig(filename = "Litmus_Benchmark_log.log", level = logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,6 +26,7 @@ directory_maps = { \
     'r_arq' : 'arq', \
     'r_virtuoso' : 'virtuoso'
     }
+
 
 def gather_data_graph_dms(dms):
     #Gather the data and put it in a csv format
@@ -618,9 +619,7 @@ def create_log_files(list_to_benchmark):
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/query_cold_logs.log'))
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/query_hot_logs.log'))
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/index_logs.log'))
-        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/cold_query_log_perf.log'))
-        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/hot_query_log_perf.log'))
-        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/load_log_perf.log'))
+
     logger.info("Created empty log files for all the DMS")
     logger.info("*"*80)
 
@@ -1049,7 +1048,101 @@ def sanity_checks(args):
     logger.info("All the arguments are valid") 
     return True
 
+def process_perf_file(file_name, csv_list, graph_dms, action):
+    q = open(file_name, "r")
+    all_lines = q.readlines()
+    run_id = 1
+    not_supported = []
+    csv_list_2 = []
+    l = [graph_dms, action, str(run_id)]
+    for each in all_lines[1:]:
+        if each[0] == "#":
+            l = [graph_dms, action, str(run_id)]
+            for each in csv_list_2:
+                l.append(each[1])
+            csv_list.append(l)
+            run_id+=1
+            csv_list_2 = []
+        else:
+            s = re.findall(r"[0-9\.\,]+      [a-zA-Z0-9\-]+", each)
+            if len(s)!=0:
+                value, key = s[0].split("      ")
+                value = value.replace(",", "")
+                value = float(value)
+                csv_list_2.append([key, str(value)])
+    l = [graph_dms, action, str(run_id)]    
+    for each in csv_list_2:
+        l.append(each[1])
+    csv_list.append(l)
+    
+    headers = ["Graph DMS", "action", "run_id"]
+    for each in csv_list_2:
+        headers.append(each[0])
 
+    return csv_list, headers    
+
+
+def process_perf_group(all_files, action_type):
+    dic_csv = {}
+    dic_csv_headers = {}    
+    for each in all_files:
+        name_of_file = each.split("/")[-1]
+        file_number = name_of_file.split(".")[-1]
+        csv_list = []
+        print(name_of_file)
+        graph_dms = each.split("/")[-2]
+        temp_list, temp_headers = process_perf_file(each, csv_list, graph_dms, action_type)
+        dic_csv[file_number] = temp_list        
+        dic_csv_headers[file_number] = temp_headers
+    return dic_csv_headers, dic_csv
+
+def process_all_perfs_dms(perf_directory):
+    headers = []
+    
+    if perf_directory[-1]!="/":
+        perf_directory = perf_directory + "/"    
+
+    all_files = glob.glob(perf_directory + "load_log_perf*")
+    dic_load_headers, dic_load = process_perf_group(all_files, "load") 
+
+    all_files = glob.glob(perf_directory + "cold_query_log_perf*")
+    dic_query_cold_headers, dic_cold = process_perf_group(all_files, "query_cold")
+
+    all_files = glob.glob(perf_directory + "hot_query_log_perf*")
+    dic_query_hot_headers, dic_hot = process_perf_group(all_files, "query_hot")
+    
+    return [dic_load_headers, dic_load, dic_cold, dic_hot] 
+    
+def generate_perf_csv_for_all_graphs(name_of_file):
+    f = open(name_of_file, "w")
+    dic_all = {}
+    for each in directory_maps:
+        if "g_" in each:
+            dic_all[each] = process_all_perfs_dms("/var/log/%s/" % (directory_maps[each]))
+
+    dic_load_headers = dic_all["g_tinker"][0]
+    f.write(",".join(dic_load_headers['1']))
+    f.write(",")
+    for i in range(2,5):
+        f.write(",".join(dic_load_headers[str(i)][3:]))
+        if i == 4:
+            continue
+        f.write(",")
+    f.write("\n")
+
+    for each in dic_all:
+        m = dic_all[each][1:]
+        for each in m:
+            for i in range(len(each['1'])):
+                f.write(",".join(each['1'][i]))
+                f.write(",")
+                f.write(",".join(each['2'][i][3:]))
+                f.write(",")
+                f.write(",".join(each['3'][i][3:]))
+                f.write(",")
+                f.write(",".join(each['4'][i][3:]))
+                f.write("\n")
+    f.close()                       
 
 if __name__ == "__main__":
     logger.info("Litmus Benchmark Suite")
@@ -1108,6 +1201,9 @@ if __name__ == "__main__":
 #        g_orient(total_runs, name_of_graph)
 #        g_neo4j(total_runs, name_of_graph)
         g_tinker_with_perf(total_runs, name_of_graph)
+        directory_maps = {'g_tinker' : 'tinker'}
+
+        generate_perf_csv_for_all_graphs("temp.csv")
 #        graph_create_csv("graph.load.logs", "graph.query.logs", graph_based)
     if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
