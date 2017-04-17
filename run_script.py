@@ -234,7 +234,7 @@ def rdf_create_csv(filename_load, filename_query, list_of_dbs):
 
 
 def run_perf(command, log_file, clear_cache = False):
-    clear_cache_command = "sudo echo 3 > /proc/sys/vm/drop_caches"
+    clear_cache_command = "echo 3 > /proc/sys/vm/drop_caches"
 
     perf1 = "perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s" % (log_file+".1", command)
     perf2 = "perf stat -o %s --append -e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,dTLB-loads,dTLB-load-misses,dTLB-prefetch-misses -a %s" % (log_file + ".2", command)
@@ -426,35 +426,35 @@ def r_rdf3x(runs, queryLocations, dataFile):
 
 def r_rdf3x_with_perf(runs, queryLocations, dataFile):
     logger.info("*"*80)
-    logger.info("Running the scripts for the RDF3x DMS")
+    logger.info("Running the scripts for the RDF3x DMS with perf")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocations, dataFile))
 
-    logger.info("Running the command : /scripts/rdf3x/RDF3xLoad.sh %s /tmp rdf3x_graph \
+    logger.info("Running the command : /scripts/rdf3x/RDF3xLoadPerf.sh %s /tmp rdf3x_graph \
     %s /var/log/rdf3x/load_logs.log" % (runs, dataFile))
 
     #Loading the database
-    os.system("/scripts/rdf3x/RDF3xLoad.sh %s /tmp rdf3x_graph \
-    %s /var/log/rdf3x/load_logs.log" % (runs, dataFile)) 
+    for each in range(runs):
+        load_command = "/scripts/rdf3x/RDF3xLoadPerf.sh /tmp rdf3x_graph_%s %s /var/log/rdf3x/load_logs_perf.log" % (str(each), dataFile) 
+        run_perf(load_command, "/var/log/rdf3x/load_log_perf.log", clear_cache = True)
+
+    subprocess.call("rm -r /tmp/*", shell = True)
+
+    load_command = "/scripts/rdf3x/RDF3xLoadPerf.sh /tmp rdf3x_graph %s /dev/null" % (dataFile)
+    subprocess.call(load_command, shell = True)
+    for each in range(runs):
+        m = glob.glob(queryLocations + "/*.sparql")
+        print("***************", m, "*****************")
+        for each in m:
+            name_of_file = each.split("/")[-1].split(".")[0]
+            query_command = "/scripts/rdf3x/RDF3xExecuteColdCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_cold_logs_perf.log %s" % (each)
+            run_perf(query_command, "/var/log/rdf3x/cold_query_log_perf.log.%s" %(name_of_file), clear_cache = True)
     
-    logger.info("Running the command : /scripts/rdf3x/RDF3xExecuteColdCache.sh /tmp rdf3x_graph_cold \
-    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
-
-    #Querying the database
-    os.system("/scripts/rdf3x/RDF3xExecuteColdCache.sh /tmp rdf3x_graph_cold \
-    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
-
-
-    logger.info("Running the command : /scripts/rdf3x/RDF3xExecuteHotCache.sh /tmp rdf3x_graph_hot \
-    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
-
-    #Querying the database
-    os.system("/scripts/rdf3x/RDF3xExecuteHotCache.sh /tmp rdf3x_graph_hot \
-    %s %s /var/log/rdf3x/query_hot_logs.log %s" % (dataFile, queryLocations, runs)) 
-    
-    #logger.info("Gathering the info and putting it in a csv file")        
-    #gather_data_rdf_dms("r_rdf3x")
-    logger.info("*"*80)
-
+    for each in range(runs):
+        m = glob.glob(queryLocations + "/*.sparql")
+        for each in m:
+            name_of_file = each.split("/")[-1].split(".")[0]
+            query_command = "/scripts/rdf3x/RDF3xExecuteHotCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_hot_logs_perf.log %s" % (each)
+            run_perf(query_command, "/var/log/rdf3x/hot_query_log_perf.log.%s" %(name_of_file))
 
 
 def g_orient_with_perf(runs, xmlFile):
@@ -695,7 +695,7 @@ def generate_rdf_queries(rdf_query_location):
         new_file.write(original_file)
         new_file.close()
         apache_file = open("/jena_queries/" + get_name_of_file(each), "w")
-        apache_file.write(original_file.split(";")[0])
+        apache_file.write(original_file)
         apache_file.close()
     logger.info("Created rdf query files from queries present at %s \
         for Jena (/jena_queries) and Virtuoso (/virtuoso_queries)" % (rdf_query_location))
@@ -1241,7 +1241,6 @@ if __name__ == "__main__":
 #        g_neo4j(total_runs, name_of_graph)
         g_tinker_with_perf(total_runs, name_of_graph)
         directory_maps = {'g_tinker' : 'tinker'}
-
         generate_perf_csv_for_all_graphs("temp.csv")
 #        graph_create_csv("graph.load.logs", "graph.query.logs", graph_based)
     if args["rdf"]:
@@ -1249,7 +1248,8 @@ if __name__ == "__main__":
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.ttl")
         name_of_graph = name_of_graph[0]
 
-        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
-        r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
-        r_jena(total_runs, "/jena_queries", name_of_graph)
+#        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
+        r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
+        #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
+#        r_jena(total_runs, "/jena_queries", name_of_graph)
         rdf_create_csv("rdf.load.logs", "rdf.query.logs", rdf_based)
