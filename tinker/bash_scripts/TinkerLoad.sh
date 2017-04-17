@@ -11,6 +11,7 @@ do
     echo "Loading Script for dataset $3"
 	#echo "Run Number:$i" >> $4
 	/gremlin-groovy/bin/gremlin.sh -e /scripts/tinker/TinkerLoad.groovy $2 $3 >> $4
+	rm -r /tmp/*
 done
 
 # Example Run

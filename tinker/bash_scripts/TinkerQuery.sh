@@ -8,7 +8,7 @@
 #All the queries have to be written in the SparkseeQuery.groovy file itself.
 
 /gremlin-groovy/bin/gremlin.sh -e $5 $2 $3 $1 >> $4
-
+rm -r /tmp/*
 # Example Run
 # ./TinkerQuery.sh 5 ./HelloWorld.gdb ../../gremlin-groovy/data/graph-example-2.xml logs.txt
 

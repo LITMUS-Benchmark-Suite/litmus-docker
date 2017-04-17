@@ -4,6 +4,8 @@ import glob
 import sys
 import time
 import logging
+import subprocess
+
 
 logging.basicConfig(filename = "Litmus_Benchmark_log.log", level = logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,7 +26,6 @@ directory_maps = { \
     'r_arq' : 'arq', \
     'r_virtuoso' : 'virtuoso'
     }
-
 
 def gather_data_graph_dms(dms):
     #Gather the data and put it in a csv format
@@ -230,6 +231,57 @@ def rdf_create_csv(filename_load, filename_query, list_of_dbs):
         query_handler.write(",".join(each) + "\n")
     query_handler.close()
 
+
+def run_perf(command, log_file):
+    perf1 = "perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s" % (log_file+".1", command)
+    perf2 = "perf stat -o %s --append -e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,dTLB-loads,dTLB-load-misses,dTLB-prefetch-misses -a %s" % (log_file + ".2", command)
+    perf3 = "perf stat -o %s --append -e LLC-loads,LLC-load-misses,LLC-stores,LLC-prefetches -a %s" % (log_file + ".3", command)
+    perf4 = "perf stat -o %s --append -e branches,branch-misses,context-switches,cpu-migrations,page-faults -a %s" % (log_file + ".4", command)
+
+    logger.info("Perf Command 1: %s " %(perf1))
+    logger.info("Perf Command 2: %s " %(perf2))
+    logger.info("Perf Command 3: %s " %(perf3))
+    logger.info("Perf Command 4: %s " %(perf4))
+
+    print("*****", perf1, "*****")
+    subprocess.call(perf1, shell = True)
+    time.sleep(1)
+    print("FInished perf1")
+
+    subprocess.call(perf2, shell = True)
+    time.sleep(1)
+    print("FInished perf2")
+
+    subprocess.call(perf3, shell = True)
+    time.sleep(1)
+    print("Finished Perf3")
+
+    subprocess.call(perf4, shell = True)
+    time.sleep(1)
+    print("Finished Perf4")
+
+def g_sparksee_with_perf(runs, xmlFile):
+
+    logger.info("*"*80)
+    logger.info("Running the scripts for the Sparksee DMS With Perf")
+    logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
+
+
+    for each in range(runs):
+    #Loading the database
+        load_command = "/scripts/sparksee/SparkseeLoadPerf.sh /tmp/sparksee.gdb %s /var/log/sparksee/load_logs.log" % (xmlFile)
+        run_perf(load_command, "/var/log/sparksee/load_log_perf.log")
+
+    #Querying the database
+
+        cold_query_command = "/scripts/sparksee/SparkseeQueryPerf.sh /tmp/HelloWorld.gdb.sparksee.cold %s /var/log/sparksee/query_cold_logs.log /scripts/sparksee/SparkseeQueryColdPerf.groovy" % (xmlFile)
+        run_perf(cold_query_command, "/var/log/sparksee/cold_query_log_perf.log")
+
+        hot_query_command = "/scripts/sparksee/SparkseeQueryPerf.sh /tmp/HelloWorld.gdb.sparksee.hot %s /var/log/sparksee/query_hot_logs.log /scripts/sparksee/SparkseeQueryHotPerf.groovy" % (xmlFile)
+        run_perf(hot_query_command, "/var/log/sparksee/hot_query_log_perf.log")
+
+    logger.info("*"*80)
+
     
 def g_sparksee(runs, xmlFile):
 
@@ -266,6 +318,33 @@ def g_sparksee(runs, xmlFile):
     #logger.info("Gathering the info and putting it in a csv file")
     #Gather the data and put it in a csv format
     #gather_data_graph_dms("g_sparksee")
+    logger.info("*"*80)
+
+def g_tinker_with_perf(runs, xmlFile):
+
+    logger.info("*"*80)
+    logger.info("Running the scripts for the TinkerGraph DMS With Perf")
+    logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
+
+    for each in range(runs):
+        #Loading the database
+        load_command = "/scripts/tinker/TinkerLoadPerf.sh /tmp/tinker.gdb %s /var/log/tinker/load_logs.log" % (xmlFile)
+        #print(load_command)
+        run_perf(load_command, "/var/log/tinker/load_log_perf.log")
+
+        print("Finished running the load command")
+
+        #Querying the database
+        cold_query_command = "/scripts/tinker/TinkerQueryPerf.sh /tmp/HelloWorld.gdb.tinker.cold %s /var/log/tinker/query_cold_logs.log /scripts/tinker/TinkerQueryColdPerf.groovy" % (xmlFile)
+        run_perf(cold_query_command, "/var/log/tinker/cold_query_log_perf.log")
+
+        print("Finished running the cold query command")
+
+        hot_query_command = "/scripts/tinker/TinkerQueryPerf.sh /tmp/HelloWorld.gdb.tinker.hot %s /var/log/tinker/query_hot_logs.log /scripts/tinker/TinkerQueryHotPerf.groovy" % (xmlFile)
+        run_perf(hot_query_command, "/var/log/tinker/hot_query_log_perf.log")
+
+        print("Finished running the hot query command")
+
     logger.info("*"*80)
 
 def g_tinker(runs, xmlFile):
@@ -337,6 +416,29 @@ def r_rdf3x(runs, queryLocations, dataFile):
     #gather_data_rdf_dms("r_rdf3x")
     logger.info("*"*80)
 
+
+def g_orient_with_perf(runs, xmlFile):
+
+    logger.info("*"*80)
+    logger.info("Running the scripts for the TinkerGraph DMS With Perf")
+    logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
+
+    for each in range(runs):
+        #Loading the database
+        load_command = "/scripts/orient/OrientLoadPerf.sh /tmp/orient_load.gdb %s /scripts/orient/OrientLoadPerf.groovy /var/log/orient/load_logs.log" % (xmlFile)
+        run_perf(load_command, "/var/log/orient/load_log_perf.log")
+
+        #Querying the database
+        cold_query_command = "/scripts/orient/OrientQueryPerf.sh /tmp/orient_query_cold.gdb %s /scripts/orient/OrientQueryColdPerf.groovy /var/log/orient/query_cold_logs.log" % (xmlFile)
+        run_perf(cold_query_command, "/var/log/orient/cold_query_log_perf.log")
+
+
+        hot_query_command = "/scripts/orient/OrientQueryPerf.sh /tmp/orient_query_hot.gdb %s /scripts/orient/OrientQueryHotPerf.groovy /var/log/orient/query_hot_logs.log" % (xmlFile)
+        run_perf(hot_query_command, "/var/log/orient/hot_query_log_perf.log")
+
+
+    logger.info("*"*80)
+
 def g_orient(runs, xmlFile):
     logger.info("*"*80)
     logger.info("Running the scripts for the Orient DMS")
@@ -373,6 +475,28 @@ def g_orient(runs, xmlFile):
     #gather_data_graph_dms("g_orient")
     logger.info("*"*80)
 
+
+def g_neo4j_with_perf(runs, xmlFile):
+
+    logger.info("*"*80)
+    logger.info("Running the scripts for the TinkerGraph DMS With Perf")
+    logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
+
+    for each in range(runs):
+        #Loading the database
+        load_command = "/scripts/neo4j/Neo4jLoadPerf.sh /tmp/neo4j_load.gdb %s /var/log/neo4j/load_logs.log" % (xmlFile) 
+        run_perf(load_command, "/var/log/neo4j/load_log_perf.log")
+
+        #Querying the database
+        cold_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh /tmp/neo4j_Query.gdb.cold %s /var/log/neo4j/query_cold_logs.log /scripts/neo4j/Neo4jQueryColdPerf.groovy" % (xmlFile)
+        run_perf(cold_query_command, "/var/log/neo4j/cold_query_log_perf.log")
+
+
+        hot_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh /tmp/neo4j_Query.gdb.hot %s /var/log/neo4j/query_hot_logs.log /scripts/neo4j/Neo4jQueryHotPerf.groovy" % (xmlFile)
+        run_perf(hot_query_command, "/var/log/neo4j/hot_query_log_perf.log")
+
+
+    logger.info("*"*80)
 
 def g_neo4j(runs, xmlFile):
     logger.info("*"*80)
@@ -494,7 +618,9 @@ def create_log_files(list_to_benchmark):
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/query_cold_logs.log'))
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/query_hot_logs.log'))
         os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/index_logs.log'))
-
+        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/cold_query_log_perf.log'))
+        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/hot_query_log_perf.log'))
+        os.system('touch %s' % ('/var/log/' + directory_maps[each] + '/load_log_perf.log'))
     logger.info("Created empty log files for all the DMS")
     logger.info("*"*80)
 
@@ -537,6 +663,145 @@ def generate_rdf_queries(rdf_query_location):
         for Jena (/jena_queries) and Virtuoso (/virtuoso_queries)" % (rdf_query_location))
     logger.info("*"*80)
 
+def generate_graph_queries_perf(gremlin_query_location_cold, gremlin_query_location_hot = None):
+    """This function will generate the custom groovy files for all 
+        the four graph based dbs for perf based analysis"""
+    if gremlin_query_location_hot is None:
+        gremlin_query_location_hot = gremlin_query_location_cold
+    logger.info("*"*80)
+    logger.info("Creating gremlin query files from gremlin_cold.groovy file present at %s \
+        for Gremlin cold cache for Orient, Tinker, Neo4j and Sparksee" % (gremlin_query_location_cold))
+    gremlin_queries = open(gremlin_query_location_cold, "r").read()
+    sparksee_filehandler = open("/scripts/sparksee/SparkseeQueryColdPerf.groovy", "w")
+    sparksee_filehandler.write("""import com.tinkerpop.blueprints.impls.sparksee.*
+
+x = new SparkseeGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "Dataset is " + args[1]
+println "==============Running The Queries=========="
+""")
+    sparksee_filehandler.write(gremlin_queries)
+    sparksee_filehandler.write("\nx.shutdown()");
+    sparksee_filehandler.close()
+
+    tinker_filehandler = open("/scripts/tinker/TinkerQueryColdPerf.groovy", "w")
+    tinker_filehandler.write("""x = new TinkerGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "Dataset is " + args[1]
+println "==============Running The Queries=========="
+""")
+    tinker_filehandler.write(gremlin_queries)
+    tinker_filehandler.write("\nx.shutdown()");
+    tinker_filehandler.close()
+
+
+    neo4j_filehandler = open("/scripts/neo4j/Neo4jQueryColdPerf.groovy", "w")
+    neo4j_filehandler.write("""x = new Neo4jGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "==============Starting to Run The Queries=========="
+""");
+    neo4j_filehandler.write(gremlin_queries)
+    neo4j_filehandler.write("\nx.shutdown()")
+    neo4j_filehandler.close()    
+
+    orient_filehandler = open("/scripts/orient/OrientQueryColdPerf.groovy", "w")
+    orient_filehandler.write("""println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x = new OrientGraph("memory:"+args[0])
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "==============Starting to Run The Queries=========="
+""")
+    orient_filehandler.write(gremlin_queries)
+    orient_filehandler.write("\nx.shutdown()")
+    orient_filehandler.close()
+
+
+
+    gremlin_queries = open(gremlin_query_location_hot, "r").read()
+    sparksee_filehandler = open("/scripts/sparksee/SparkseeQueryHotPerf.groovy", "w")
+    sparksee_filehandler.write("""import com.tinkerpop.blueprints.impls.sparksee.*
+
+x = new SparkseeGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "Dataset is " + args[1]
+println "==============Running The Queries=========="
+""")
+    sparksee_filehandler.write(gremlin_queries)
+    sparksee_filehandler.write("\nx.shutdown()");
+    sparksee_filehandler.close()
+
+
+    tinker_filehandler = open("/scripts/tinker/TinkerQueryHotPerf.groovy", "w")
+    tinker_filehandler.write("""
+x = new TinkerGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+println "Dataset is " + args[1]
+println "==============Running The Queries=========="
+""")
+    tinker_filehandler.write(gremlin_queries)
+    tinker_filehandler.write("\nx.shutdown()");
+    tinker_filehandler.close()
+
+    neo4j_filehandler = open("/scripts/neo4j/Neo4jQueryHotPerf.groovy", "w")
+    neo4j_filehandler.write("""x = new Neo4jGraph(args[0])
+println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+
+println "==============Starting to Run The Queries=========="
+""");
+    neo4j_filehandler.write(gremlin_queries)
+    neo4j_filehandler.write("\nx.shutdown()")
+    neo4j_filehandler.close()    
+
+    orient_filehandler = open("/scripts/orient/OrientQueryHotPerf.groovy", "w")
+    orient_filehandler.write("""println "===============Loading the Graph Model============"
+loadModel = System.currentTimeMillis()
+x = new OrientGraph("memory:"+args[0])
+x.loadGraphML(args[1])
+println "Time taken to load the graph Model:" + (System.currentTimeMillis() - loadModel)
+println "===============Graph Model Loaded============"
+x.V.count();
+
+println "==============Starting to Run The Queries=========="
+""")
+    orient_filehandler.write(gremlin_queries)
+    orient_filehandler.write("\nx.shutdown()")
+    orient_filehandler.close()
+
+    logger.info("*"*80)
+
 def generate_graph_queries(gremlin_query_location_cold, gremlin_query_location_hot = None):
     """This function will generate the custom groovy files for all 
         the three graph based dbs"""
@@ -544,7 +809,7 @@ def generate_graph_queries(gremlin_query_location_cold, gremlin_query_location_h
         gremlin_query_location_hot = gremlin_query_location_cold
     logger.info("*"*80)
     logger.info("Creating gremlin query files from gremlin_cold.groovy file present at %s \
-        for Gremlin cold cache for Orient, Neo4j and Sparksee" % (gremlin_query_location_cold))
+        for Gremlin cold cache for Orient, Tinker, Neo4j and Sparksee" % (gremlin_query_location_cold))
     
     gremlin_queries = open(gremlin_query_location_cold, "r").read()
     sparksee_filehandler = open("/scripts/sparksee/SparkseeQueryCold.groovy", "w")
@@ -785,6 +1050,7 @@ def sanity_checks(args):
     return True
 
 
+
 if __name__ == "__main__":
     logger.info("Litmus Benchmark Suite")
     parser = argparse.ArgumentParser(description='The Litmus Benchmark Suite')
@@ -828,16 +1094,21 @@ if __name__ == "__main__":
         % (total_runs, args['graph_datafile'], args['graph_queries'], args['rdf_datafile'], args['rdf_queries']))
     
     create_log_files(final_list)
+    
+
     if args['graph']:
         generate_graph_queries(args['graph_queries']+"/gremlin.groovy.cold_cache", \
                 args['graph_queries']+"/gremlin.groovy.hot_cache")
+        generate_graph_queries_perf(args['graph_queries']+"/gremlin.groovy.cold_cache", \
+                args['graph_queries']+"/gremlin.groovy.hot_cache")
+
         name_of_graph = glob.glob(args['graph_datafile'] + "/*")
         name_of_graph = name_of_graph[0]
-        g_sparksee(total_runs, name_of_graph)
-        g_orient(total_runs, name_of_graph)
-        g_neo4j(total_runs, name_of_graph)
-        g_tinker(total_runs, name_of_graph)
-        graph_create_csv("graph.load.logs", "graph.query.logs", graph_based)
+#        g_sparksee(total_runs, name_of_graph)
+#        g_orient(total_runs, name_of_graph)
+#        g_neo4j(total_runs, name_of_graph)
+        g_tinker_with_perf(total_runs, name_of_graph)
+#        graph_create_csv("graph.load.logs", "graph.query.logs", graph_based)
     if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.ttl")
@@ -847,4 +1118,3 @@ if __name__ == "__main__":
         r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
         r_jena(total_runs, "/jena_queries", name_of_graph)
         rdf_create_csv("rdf.load.logs", "rdf.query.logs", rdf_based)
-
