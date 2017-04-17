@@ -233,7 +233,9 @@ def rdf_create_csv(filename_load, filename_query, list_of_dbs):
     query_handler.close()
 
 
-def run_perf(command, log_file):
+def run_perf(command, log_file, clear_cache = False):
+    clear_cache_command = "sudo echo 3 > /proc/sys/vm/drop_caches"
+
     perf1 = "perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s" % (log_file+".1", command)
     perf2 = "perf stat -o %s --append -e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,dTLB-loads,dTLB-load-misses,dTLB-prefetch-misses -a %s" % (log_file + ".2", command)
     perf3 = "perf stat -o %s --append -e LLC-loads,LLC-load-misses,LLC-stores,LLC-prefetches -a %s" % (log_file + ".3", command)
@@ -244,21 +246,25 @@ def run_perf(command, log_file):
     logger.info("Perf Command 3: %s " %(perf3))
     logger.info("Perf Command 4: %s " %(perf4))
 
+    if clear_cache:
+        subprocess.call(clear_cache_command, shell = True)
     print("*****", perf1, "*****")
     subprocess.call(perf1, shell = True)
-    time.sleep(1)
     print("FInished perf1")
 
+    if clear_cache:
+        subprocess.call(clear_cache_command, shell = True)
     subprocess.call(perf2, shell = True)
-    time.sleep(1)
     print("FInished perf2")
 
+    if clear_cache:
+        subprocess.call(clear_cache_command, shell = True)
     subprocess.call(perf3, shell = True)
-    time.sleep(1)
     print("Finished Perf3")
 
+    if clear_cache:
+        subprocess.call(clear_cache_command, shell = True)
     subprocess.call(perf4, shell = True)
-    time.sleep(1)
     print("Finished Perf4")
 
 def g_sparksee_with_perf(runs, xmlFile):
@@ -271,12 +277,12 @@ def g_sparksee_with_perf(runs, xmlFile):
     for each in range(runs):
     #Loading the database
         load_command = "/scripts/sparksee/SparkseeLoadPerf.sh /tmp/sparksee.gdb %s /var/log/sparksee/load_logs.log" % (xmlFile)
-        run_perf(load_command, "/var/log/sparksee/load_log_perf.log")
+        run_perf(load_command, "/var/log/sparksee/load_log_perf.log", clear_cache = True)
 
     #Querying the database
 
         cold_query_command = "/scripts/sparksee/SparkseeQueryPerf.sh /tmp/HelloWorld.gdb.sparksee.cold %s /var/log/sparksee/query_cold_logs.log /scripts/sparksee/SparkseeQueryColdPerf.groovy" % (xmlFile)
-        run_perf(cold_query_command, "/var/log/sparksee/cold_query_log_perf.log")
+        run_perf(cold_query_command, "/var/log/sparksee/cold_query_log_perf.log", clear_cache = True)
 
         hot_query_command = "/scripts/sparksee/SparkseeQueryPerf.sh /tmp/HelloWorld.gdb.sparksee.hot %s /var/log/sparksee/query_hot_logs.log /scripts/sparksee/SparkseeQueryHotPerf.groovy" % (xmlFile)
         run_perf(hot_query_command, "/var/log/sparksee/hot_query_log_perf.log")
@@ -331,13 +337,13 @@ def g_tinker_with_perf(runs, xmlFile):
         #Loading the database
         load_command = "/scripts/tinker/TinkerLoadPerf.sh /tmp/tinker.gdb %s /var/log/tinker/load_logs.log" % (xmlFile)
         #print(load_command)
-        run_perf(load_command, "/var/log/tinker/load_log_perf.log")
+        run_perf(load_command, "/var/log/tinker/load_log_perf.log", clear_cache = True)
 
         print("Finished running the load command")
 
         #Querying the database
         cold_query_command = "/scripts/tinker/TinkerQueryPerf.sh /tmp/HelloWorld.gdb.tinker.cold %s /var/log/tinker/query_cold_logs.log /scripts/tinker/TinkerQueryColdPerf.groovy" % (xmlFile)
-        run_perf(cold_query_command, "/var/log/tinker/cold_query_log_perf.log")
+        run_perf(cold_query_command, "/var/log/tinker/cold_query_log_perf.log", clear_cache = True)
 
         print("Finished running the cold query command")
 
@@ -418,6 +424,39 @@ def r_rdf3x(runs, queryLocations, dataFile):
     logger.info("*"*80)
 
 
+def r_rdf3x_with_perf(runs, queryLocations, dataFile):
+    logger.info("*"*80)
+    logger.info("Running the scripts for the RDF3x DMS")
+    logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocations, dataFile))
+
+    logger.info("Running the command : /scripts/rdf3x/RDF3xLoad.sh %s /tmp rdf3x_graph \
+    %s /var/log/rdf3x/load_logs.log" % (runs, dataFile))
+
+    #Loading the database
+    os.system("/scripts/rdf3x/RDF3xLoad.sh %s /tmp rdf3x_graph \
+    %s /var/log/rdf3x/load_logs.log" % (runs, dataFile)) 
+    
+    logger.info("Running the command : /scripts/rdf3x/RDF3xExecuteColdCache.sh /tmp rdf3x_graph_cold \
+    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
+
+    #Querying the database
+    os.system("/scripts/rdf3x/RDF3xExecuteColdCache.sh /tmp rdf3x_graph_cold \
+    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
+
+
+    logger.info("Running the command : /scripts/rdf3x/RDF3xExecuteHotCache.sh /tmp rdf3x_graph_hot \
+    %s %s /var/log/rdf3x/query_cold_logs.log %s" % (dataFile, queryLocations, runs))
+
+    #Querying the database
+    os.system("/scripts/rdf3x/RDF3xExecuteHotCache.sh /tmp rdf3x_graph_hot \
+    %s %s /var/log/rdf3x/query_hot_logs.log %s" % (dataFile, queryLocations, runs)) 
+    
+    #logger.info("Gathering the info and putting it in a csv file")        
+    #gather_data_rdf_dms("r_rdf3x")
+    logger.info("*"*80)
+
+
+
 def g_orient_with_perf(runs, xmlFile):
 
     logger.info("*"*80)
@@ -427,11 +466,11 @@ def g_orient_with_perf(runs, xmlFile):
     for each in range(runs):
         #Loading the database
         load_command = "/scripts/orient/OrientLoadPerf.sh /tmp/orient_load.gdb %s /scripts/orient/OrientLoadPerf.groovy /var/log/orient/load_logs.log" % (xmlFile)
-        run_perf(load_command, "/var/log/orient/load_log_perf.log")
+        run_perf(load_command, "/var/log/orient/load_log_perf.log", clear_cache = True)
 
         #Querying the database
         cold_query_command = "/scripts/orient/OrientQueryPerf.sh /tmp/orient_query_cold.gdb %s /scripts/orient/OrientQueryColdPerf.groovy /var/log/orient/query_cold_logs.log" % (xmlFile)
-        run_perf(cold_query_command, "/var/log/orient/cold_query_log_perf.log")
+        run_perf(cold_query_command, "/var/log/orient/cold_query_log_perf.log", clear_cache = True)
 
 
         hot_query_command = "/scripts/orient/OrientQueryPerf.sh /tmp/orient_query_hot.gdb %s /scripts/orient/OrientQueryHotPerf.groovy /var/log/orient/query_hot_logs.log" % (xmlFile)
@@ -486,11 +525,11 @@ def g_neo4j_with_perf(runs, xmlFile):
     for each in range(runs):
         #Loading the database
         load_command = "/scripts/neo4j/Neo4jLoadPerf.sh /tmp/neo4j_load.gdb %s /var/log/neo4j/load_logs.log" % (xmlFile) 
-        run_perf(load_command, "/var/log/neo4j/load_log_perf.log")
+        run_perf(load_command, "/var/log/neo4j/load_log_perf.log", clear_cache = True)
 
         #Querying the database
         cold_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh /tmp/neo4j_Query.gdb.cold %s /var/log/neo4j/query_cold_logs.log /scripts/neo4j/Neo4jQueryColdPerf.groovy" % (xmlFile)
-        run_perf(cold_query_command, "/var/log/neo4j/cold_query_log_perf.log")
+        run_perf(cold_query_command, "/var/log/neo4j/cold_query_log_perf.log", clear_cache = True)
 
 
         hot_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh /tmp/neo4j_Query.gdb.hot %s /var/log/neo4j/query_hot_logs.log /scripts/neo4j/Neo4jQueryHotPerf.groovy" % (xmlFile)

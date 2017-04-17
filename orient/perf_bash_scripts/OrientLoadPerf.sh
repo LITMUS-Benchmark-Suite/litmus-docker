@@ -5,7 +5,6 @@
 #The fourth argument corresponds to the location of the log file
 
 
-sh -c "sync ; echo 3 > /proc/sys/vm/drop_caches";
 cd /orientdb/bin && ./gremlin.sh -e  $3\ $1\ $2>> $4
 
 # Example Run

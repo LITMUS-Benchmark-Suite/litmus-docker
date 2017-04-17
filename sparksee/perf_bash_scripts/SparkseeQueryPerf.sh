@@ -7,5 +7,3 @@
 #All the queries have to be written in the SparkseeQuery.groovy file itself.
 
 /gremlin-groovy/bin/gremlin.sh -e $4 $1 $2 >> $3
-rm -r /tmp/*
-
