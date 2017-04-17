@@ -15,6 +15,6 @@ for i in $(seq 1 1 $1)
 do
     sync ; 
     echo 3 > /proc/sys/vm/drop_caches;
-    $RDF_Engine/rdf3xload $DB_location/$DB_name $Dataset_name;
     /usr/bin/time -a -o $RESULT_file -f "%S\t%U\t%e" $RDF_Engine/rdf3xload $DB_location/$DB_name $Dataset_name > /dev/null 2>> /dev/null;
+    rm -r /tmp/*
 done
