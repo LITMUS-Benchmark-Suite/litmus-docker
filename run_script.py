@@ -233,7 +233,7 @@ def rdf_create_csv(filename_load, filename_query, list_of_dbs):
     query_handler.close()
 
 
-def run_perf(command, log_file, clear_cache = False):
+def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue = None):
     clear_cache_command = "echo 3 > /proc/sys/vm/drop_caches"
 
     perf1 = "perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s" % (log_file+".1", command)
@@ -248,24 +248,43 @@ def run_perf(command, log_file, clear_cache = False):
 
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
+    if prelogue:
+        subprocess.call(prelogue, shell = True)
     print("*****", perf1, "*****")
     subprocess.call(perf1, shell = True)
+    if epilogue:
+        subprocess.call(epilogue, shell = True)
     print("FInished perf1")
+
 
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
+    if prelogue:
+        subprocess.call(prelogue, shell = True)
+    print("*****", perf2, "*****")
     subprocess.call(perf2, shell = True)
+    if epilogue:
+        subprocess.call(epilogue, shell = True)
     print("FInished perf2")
 
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
+    if prelogue:
+        subprocess.call(prelogue, shell = True)
+    print("*****", perf3, "*****")
     subprocess.call(perf3, shell = True)
+    if epilogue:
+        subprocess.call(epilogue, shell = True)
     print("Finished Perf3")
 
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
+    if prelogue:
+        subprocess.call(prelogue, shell = True)
+    print("*****", perf4, "*****")
     subprocess.call(perf4, shell = True)
-    print("Finished Perf4")
+    if epilogue:
+        subprocess.call(epilogue, shell = True)
 
 def g_sparksee_with_perf(runs, xmlFile):
 
@@ -434,26 +453,29 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile):
 
     #Loading the database
     for each in range(runs):
-        load_command = "/scripts/rdf3x/RDF3xLoadPerf.sh /tmp rdf3x_graph_%s %s /var/log/rdf3x/load_logs_perf.log" % (str(each), dataFile) 
+        load_command = "/scripts/rdf3x/RDF3xLoadPerf.sh /tmp rdf3x_graph_%s %s /var/log/rdf3x/load_logs.log" % (str(each), dataFile) 
         run_perf(load_command, "/var/log/rdf3x/load_log_perf.log", clear_cache = True)
 
     subprocess.call("rm -r /tmp/*", shell = True)
 
     load_command = "/scripts/rdf3x/RDF3xLoadPerf.sh /tmp rdf3x_graph %s /dev/null" % (dataFile)
     subprocess.call(load_command, shell = True)
-    for each in range(runs):
-        m = glob.glob(queryLocations + "/*.sparql")
-        print("***************", m, "*****************")
-        for each in m:
-            name_of_file = each.split("/")[-1].split(".")[0]
-            query_command = "/scripts/rdf3x/RDF3xExecuteColdCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_cold_logs_perf.log %s" % (each)
+
+
+    m = glob.glob(queryLocations + "/*.sparql")
+    for each in m:
+        name_of_file = each.split("/")[-1].split(".")[0]
+        subprocess.call("echo %s >> /var/log/rdf3x/query_cold_logs.log" % (name_of_file), shell = True)
+        for each in range(runs):
+            query_command = "/scripts/rdf3x/RDF3xExecuteColdCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_cold_logs.log %s" % (each)
             run_perf(query_command, "/var/log/rdf3x/cold_query_log_perf.log.%s" %(name_of_file), clear_cache = True)
     
-    for each in range(runs):
-        m = glob.glob(queryLocations + "/*.sparql")
-        for each in m:
-            name_of_file = each.split("/")[-1].split(".")[0]
-            query_command = "/scripts/rdf3x/RDF3xExecuteHotCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_hot_logs_perf.log %s" % (each)
+    m = glob.glob(queryLocations + "/*.sparql")
+    for each in m:
+        name_of_file = each.split("/")[-1].split(".")[0]
+        subprocess.call("echo %s >> /var/log/rdf3x/query_hot_logs.log" % (name_of_file), shell = True)
+        for each in range(runs):
+            query_command = "/scripts/rdf3x/RDF3xExecuteHotCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_hot_logs.log %s" % (each)
             run_perf(query_command, "/var/log/rdf3x/hot_query_log_perf.log.%s" %(name_of_file))
 
 
@@ -649,6 +671,57 @@ def r_virtuoso(runs, queryLocation, dataFileLocation):
     logger.info("Gathering the info and putting it in a csv file")        
     #gather_data_rdf_dms('r_virtuoso')    
     #logger.info("*"*80)
+
+def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
+    logger.info("*"*80)
+    logger.info("Running the scripts for the Virtuoso DMS with perf")
+    logger.info("Runs = %s, queryLocations = %s, dataFile = %s" \
+            % (runs, queryLocation, dataFileLocation))
+
+    logger.info("Running the setup_ini.py script to get the configurations ready")
+    logger.info("The command is python3 /scripts/virtuoso/setup_ini.py -l /scripts/virtuoso \
+            -df %s -qf %s" % (dataFileLocation, queryLocation))
+    # All the files which match *.ttl in the dataFile location, would be loaded
+    os.system("python3 /scripts/virtuoso/setup_ini.py -l /scripts/virtuoso -df \
+            %s -qf %s" % (dataFileLocation, queryLocation))
+    
+    logger.info("Starting the virtuoso server")
+    # Starting the server
+    os.system("cd /scripts/virtuoso && /usr/local/virtuoso-opensource/bin/virtuoso-t -f /scripts/virtuoso/ &")
+    time.sleep(30)
+
+    for each in range(runs):
+        # Running the loads
+        prelogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"
+        command = "/scripts/virtuoso/virtuoso_load_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/load_logs.log"
+        epilogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/clear.sql> /dev/null 2>> /dev/null;"
+        run_perf(command, "/var/log/virtuoso/load_logs_perf.log", clear_cache = True, prelogue = prelogue, epilogue = epilogue)
+
+    prelogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"
+    command = "/scripts/virtuoso/virtuoso_load.sh /usr/local/virtuoso-opensource/bin/isql /dev/null"
+    subprocess.call(prelogue, shell = True)
+    subprocess.call(command, shell = True)
+
+    m = glob.glob(queryLocation + "/*.sparql")
+    for each in m:
+        name_of_file = each.split("/")[-1].split(".")[0]
+        subprocess.call("echo %s >> /var/log/virtuoso/query_hot_logs.log" % (name_of_file), shell = True)
+        for each in range(runs):
+            command = "/scripts/virtuoso/virtuoso_execute_hot_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_hot_logs.log %s" % (each)
+            run_perf(command, "/var/log/virtuoso/query_hot_logs_perf.log.%s" %(name_of_file))
+
+    m = glob.glob(queryLocation + "/*.sparql")
+    for each in m:
+        name_of_file = each.split("/")[-1].split(".")[0]
+        subprocess.call("echo %s >> /var/log/virtuoso/query_cold_logs.log" % (name_of_file), shell = True)
+        for each in range(runs):
+            command = "/scripts/virtuoso/virtuoso_execute_cold_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_cold_logs.log %s" % (each)
+            run_perf(command, "/var/log/virtuoso/query_cold_logs_perf.log.%s" %(name_of_file), clear_cache = True)
+
+    
+    #gather_data_rdf_dms('r_virtuoso')    
+    #logger.info("*"*80)
+
 
 def create_log_files(list_to_benchmark):
     logger.info("*"*80)
@@ -1250,6 +1323,7 @@ if __name__ == "__main__":
 
 #        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
         r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
+        r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
 #        r_jena(total_runs, "/jena_queries", name_of_graph)
-        rdf_create_csv("rdf.load.logs", "rdf.query.logs", rdf_based)
+        #rdf_create_csv("rdf.load.logs", "rdf.query.logs", rdf_based)
