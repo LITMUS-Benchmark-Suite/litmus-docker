@@ -3,5 +3,5 @@
 #The second argument is the location of the XML file
 #The third argument corresponds to the location of the log file
 
-#/gremlin-groovy/bin/gremlin.sh -e /scripts/neo4j/Neo4jLoadPerf.groovy $1 $2 >> $3
-/gremlin-groovy/bin/gremlin.sh -e /scripts/neo4j/Neo4jLoadPerf.groovy $1 $2
+#/gremlin-groovy/bin/gremlin.sh -e /scripts/neo4j/Neo4jQueryPerf_load.groovy $1 $2 >> $3
+/gremlin-groovy/bin/gremlin.sh -e /scripts/neo4j/Neo4jQueryPerf_load.groovy $1 $2

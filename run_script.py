@@ -15,6 +15,7 @@ graph_based = ['g_sparksee', 'g_orient', 'g_neo4j', 'g_tinker' ]
 
 rdf_based = ['r_rdf3x', 'r_monet', 'r_jena', 'r_arq', 'r_virtuoso' ]
 
+
 directory_maps = { \
     'g_sparksee':'sparksee', \
     'g_orient' : 'orient', \
@@ -25,6 +26,12 @@ directory_maps = { \
     'r_jena' : 'jena', \
     'r_arq' : 'arq', \
     'r_virtuoso' : 'virtuoso'
+    }
+
+query_directory_maps = { \
+    'r_rdf3x' : '/sparql_query', \
+    'r_jena' : '/jena_queries', \
+    'r_virtuoso' : '/virtuoso_queries'
     }
 
 
@@ -67,7 +74,9 @@ def gather_data_graph_dms(dms):
             flag = True
             continue;
         if flag:
-            query_no = int(each.split("Query ")[1].split("=")[0])
+            if "Query" not in each:
+                continue
+            query_no = each.split("Query ")[1].split("=")[0]
             flag = False
         else:
             try:
@@ -94,7 +103,9 @@ def gather_data_graph_dms(dms):
             flag = True
             continue;
         if flag:
-            query_no = int(each.split("Query ")[1].split("=")[0])
+            if "Query" not in each:
+                continue
+            query_no = each.split("Query ")[1].split("=")[0]
             flag = False
         else:
             try:
@@ -289,24 +300,45 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
 def g_sparksee_with_perf(runs, xmlFile):
 
     logger.info("*"*80)
-    logger.info("Running the scripts for the Sparksee DMS With Perf")
+    logger.info("Running the scripts for the Neo4j DMS With Perf")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
 
+    
+    for each in range(runs):
+        #Loading the database
+        load_command = "/scripts/sparksee/SparkseeLoadPerf.sh /tmp/sparksee_load.gdb %s /var/log/sparksee/load_logs.log" % (xmlFile) 
+        run_perf(load_command, "/var/log/sparksee/load_log_perf.log", clear_cache = True)
+        command = "rm -r /tmp/*"
+        subprocess.call(command, shell = True)    
+        print("Finished running the load command")
+
+        #Querying the database
+
+    load_command = "/scripts/sparksee/SparkseeQueryPerf_load.sh /tmp/sparksee_perf.gdb %s" % (xmlFile)
+    subprocess.call(load_command, shell = True)
+
+    all_queries = glob.glob("/gremlin_query_perf/sparksee_*");
+    for each in range(runs):
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/sparksee/query_hot_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            print(name_of_query, "****************")
+            hot_query_command = "/scripts/sparksee/SparkseeQueryPerf.sh %s /var/log/sparksee/query_hot_logs.log" % (each_query)
+            run_perf(hot_query_command, "/var/log/sparksee/hot_query_log_perf.log.%s" %(name_of_query))
+
+    all_queries = glob.glob("/gremlin_query_perf/sparksee_*");
 
     for each in range(runs):
-    #Loading the database
-        load_command = "/scripts/sparksee/SparkseeLoadPerf.sh /tmp/sparksee.gdb %s /var/log/sparksee/load_logs.log" % (xmlFile)
-        run_perf(load_command, "/var/log/sparksee/load_log_perf.log", clear_cache = True)
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/sparksee/query_cold_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            cold_query_command = "/scripts/sparksee/SparkseeQueryPerf.sh %s /var/log/sparksee/query_cold_logs.log" % (each_query)
+            run_perf(cold_query_command, "/var/log/sparksee/cold_query_log_perf.log.%s" %(name_of_query), clear_cache = True)
 
-    #Querying the database
+        print("Finished running the cold query command")
 
-        cold_query_command = "/scripts/sparksee/SparkseeQueryPerf.sh /tmp/HelloWorld.gdb.sparksee.cold %s /var/log/sparksee/query_cold_logs.log /scripts/sparksee/SparkseeQueryColdPerf.groovy" % (xmlFile)
-        run_perf(cold_query_command, "/var/log/sparksee/cold_query_log_perf.log", clear_cache = True)
-
-        hot_query_command = "/scripts/sparksee/SparkseeQueryPerf.sh /tmp/HelloWorld.gdb.sparksee.hot %s /var/log/sparksee/query_hot_logs.log /scripts/sparksee/SparkseeQueryHotPerf.groovy" % (xmlFile)
-        run_perf(hot_query_command, "/var/log/sparksee/hot_query_log_perf.log")
-
-    logger.info("*"*80)
 
     
 def g_sparksee(runs, xmlFile):
@@ -361,15 +393,32 @@ def g_tinker_with_perf(runs, xmlFile):
         print("Finished running the load command")
 
         #Querying the database
-        cold_query_command = "/scripts/tinker/TinkerQueryPerf.sh /tmp/HelloWorld.gdb.tinker.cold %s /var/log/tinker/query_cold_logs.log /scripts/tinker/TinkerQueryColdPerf.groovy" % (xmlFile)
-        run_perf(cold_query_command, "/var/log/tinker/cold_query_log_perf.log", clear_cache = True)
+
+    load_command = "/scripts/tinker/TinkerQueryPerf_load.sh /tmp/tinker_perf %s /dev/null" % (xmlFile)
+    subprocess.call(load_command, shell = True)
+
+    all_queries = glob.glob("/gremlin_query_perf/tinker_*");
+    for each in range(runs):
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/tinker/query_cold_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            cold_query_command = "/scripts/tinker/TinkerQueryPerf.sh %s /var/log/tinker/query_cold_logs.log" % (each_query)
+            run_perf(cold_query_command, "/var/log/tinker/cold_query_log_perf.log.%s" %(name_of_query), clear_cache = True)
 
         print("Finished running the cold query command")
 
-        hot_query_command = "/scripts/tinker/TinkerQueryPerf.sh /tmp/HelloWorld.gdb.tinker.hot %s /var/log/tinker/query_hot_logs.log /scripts/tinker/TinkerQueryHotPerf.groovy" % (xmlFile)
-        run_perf(hot_query_command, "/var/log/tinker/hot_query_log_perf.log")
 
-        print("Finished running the hot query command")
+    all_queries = glob.glob("/gremlin_query_perf/tinker_*");
+    for each in range(runs):
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/tinker/query_hot_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            print(name_of_query, "****************")
+            hot_query_command = "/scripts/tinker/TinkerQueryPerf.sh %s /var/log/tinker/query_hot_logs.log" % (each_query)
+            run_perf(hot_query_command, "/var/log/tinker/hot_query_log_perf.log.%s" %(name_of_query))
+
 
     logger.info("*"*80)
 
@@ -482,7 +531,7 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile):
 def g_orient_with_perf(runs, xmlFile):
 
     logger.info("*"*80)
-    logger.info("Running the scripts for the TinkerGraph DMS With Perf")
+    logger.info("Running the scripts for the Orient DMS With Perf")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
 
     for each in range(runs):
@@ -490,13 +539,32 @@ def g_orient_with_perf(runs, xmlFile):
         load_command = "/scripts/orient/OrientLoadPerf.sh /tmp/orient_load.gdb %s /scripts/orient/OrientLoadPerf.groovy /var/log/orient/load_logs.log" % (xmlFile)
         run_perf(load_command, "/var/log/orient/load_log_perf.log", clear_cache = True)
 
-        #Querying the database
-        cold_query_command = "/scripts/orient/OrientQueryPerf.sh /tmp/orient_query_cold.gdb %s /scripts/orient/OrientQueryColdPerf.groovy /var/log/orient/query_cold_logs.log" % (xmlFile)
-        run_perf(cold_query_command, "/var/log/orient/cold_query_log_perf.log", clear_cache = True)
+
+    load_command = "/scripts/orient/OrientLoadPerf.sh /orient_perf %s /scripts/orient/OrientQueryPerf_load.groovy /dev/null" % (xmlFile)
+    subprocess.call(load_command, shell = True)
 
 
-        hot_query_command = "/scripts/orient/OrientQueryPerf.sh /tmp/orient_query_hot.gdb %s /scripts/orient/OrientQueryHotPerf.groovy /var/log/orient/query_hot_logs.log" % (xmlFile)
-        run_perf(hot_query_command, "/var/log/orient/hot_query_log_perf.log")
+    all_queries = glob.glob("/gremlin_query_perf/orient_*");
+    for each in range(runs):
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/orient/query_cold_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            print(name_of_query, "****************")
+            cold_query_command = "/scripts/orient/OrientQueryPerf.sh /tmp/orient_perf %s /var/log/orient/query_cold_logs.log" % (each_query)
+            run_perf(cold_query_command, "/var/log/orient/cold_query_log_perf.log.%s"%(name_of_query), clear_cache = True)
+
+
+    all_queries = glob.glob("/gremlin_query_perf/orient_*");
+    for each in range(runs):
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/orient/query_hot_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            print(name_of_query, "****************")
+            hot_query_command = "/scripts/orient/OrientQueryPerf.sh /tmp/orient_perf %s /var/log/orient/query_hot_logs.log" % (each_query)
+            run_perf(hot_query_command, "/var/log/orient/hot_query_log_perf.log.%s"%(name_of_query))
+
 
 
     logger.info("*"*80)
@@ -541,7 +609,7 @@ def g_orient(runs, xmlFile):
 def g_neo4j_with_perf(runs, xmlFile):
 
     logger.info("*"*80)
-    logger.info("Running the scripts for the TinkerGraph DMS With Perf")
+    logger.info("Running the scripts for the Neo4j DMS With Perf")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
 
     for each in range(runs):
@@ -549,16 +617,41 @@ def g_neo4j_with_perf(runs, xmlFile):
         load_command = "/scripts/neo4j/Neo4jLoadPerf.sh /tmp/neo4j_load.gdb %s /var/log/neo4j/load_logs.log" % (xmlFile) 
         run_perf(load_command, "/var/log/neo4j/load_log_perf.log", clear_cache = True)
 
+        print("Finished running the load command")
+
         #Querying the database
-        cold_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh /tmp/neo4j_Query.gdb.cold %s /var/log/neo4j/query_cold_logs.log /scripts/neo4j/Neo4jQueryColdPerf.groovy" % (xmlFile)
-        run_perf(cold_query_command, "/var/log/neo4j/cold_query_log_perf.log", clear_cache = True)
+
+    load_command = "/scripts/neo4j/Neo4jQueryPerf_load.sh /tmp/neo4j_perf %s /dev/null" % (xmlFile)
+    subprocess.call(load_command, shell = True)
+
+    all_queries = glob.glob("/gremlin_query_perf/neo4j_*");
+    for each in range(runs):
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/neo4j/query_hot_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            print(name_of_query, "****************")
+            hot_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh %s /var/log/neo4j/query_hot_logs.log" % (each_query)
+            run_perf(hot_query_command, "/var/log/neo4j/hot_query_log_perf.log.%s" %(name_of_query))
+
+    all_queries = glob.glob("/gremlin_query_perf/neo4j_*");
+
+    for each in range(runs):
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/neo4j/query_cold_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            cold_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh %s /var/log/neo4j/query_cold_logs.log" % (each_query)
+            run_perf(cold_query_command, "/var/log/neo4j/cold_query_log_perf.log.%s" %(name_of_query), clear_cache = True)
+
+        print("Finished running the cold query command")
 
 
-        hot_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh /tmp/neo4j_Query.gdb.hot %s /var/log/neo4j/query_hot_logs.log /scripts/neo4j/Neo4jQueryHotPerf.groovy" % (xmlFile)
-        run_perf(hot_query_command, "/var/log/neo4j/hot_query_log_perf.log")
 
 
     logger.info("*"*80)
+
+
 
 def g_neo4j(runs, xmlFile):
     logger.info("*"*80)
@@ -644,28 +737,30 @@ def r_jena_with_perf(runs, queryLocation, dataFile):
     # Running the loads
     for each in range(runs):
         command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_%s %s /var/log/jena/load_logs.log" % (str(each), dataFile)
-        run_perf(command, "/var/log/jena/load_logs_perf.log", clear_cache = True)
+        run_perf(command, "/var/log/jena/load_log_perf.log", clear_cache = True)
 
-    subprocess.call("rm -r /tmp/*")
+    subprocess.call("ls /tmp/", shell = True)
+    subprocess.call("rm -r /tmp/*", shell = True)
 
     command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_hot %s /dev/null" % (dataFile)
     subprocess.call(command, shell = True)    
 
     m = glob.glob(queryLocation + "/*.sparql")
     for each_command in m:
-        name_of_file = each.split("/")[-1].split(".")[0]
+        name_of_file = each_command.split("/")[-1].split(".")[0]
         subprocess.call("echo %s >> /var/log/jena/query_hot_logs.log" % (name_of_file), shell = True)
         for each in range(runs):
             command = "/scripts/jena/JenaTDBExecuteHotCachePerf.sh /tmp jena_graph_hot /var/log/jena/query_hot_logs.log %s" % (each_command)
             run_perf(command, "/var/log/jena/query_hot_logs_perf.log.%s" %(name_of_file))
 
+    subprocess.call("rm -r /tmp/*", shell = True)
 
     command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_cold %s /dev/null" % (dataFile)
     subprocess.call(command, shell = True)    
 
     m = glob.glob(queryLocation + "/*.sparql")
     for each_command in m:
-        name_of_file = each.split("/")[-1].split(".")[0]
+        name_of_file = each_command.split("/")[-1].split(".")[0]
         subprocess.call("echo %s >> /var/log/jena/query_cold_logs.log" % (name_of_file), shell = True)
         for each in range(runs):
             command = "/scripts/jena/JenaTDBExecuteColdCachePerf.sh /tmp jena_graph_cold /var/log/jena/query_cold_logs.log %s" % (each_command)
@@ -733,7 +828,7 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
         prelogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"
         command = "/scripts/virtuoso/virtuoso_load_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/load_logs.log"
         epilogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/clear.sql> /dev/null 2>> /dev/null;"
-        run_perf(command, "/var/log/virtuoso/load_logs_perf.log", clear_cache = True, prelogue = prelogue, epilogue = epilogue)
+        run_perf(command, "/var/log/virtuoso/load_log_perf.log", clear_cache = True, prelogue = prelogue, epilogue = epilogue)
 
     prelogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"
     command = "/scripts/virtuoso/virtuoso_load.sh /usr/local/virtuoso-opensource/bin/isql /dev/null"
@@ -1132,6 +1227,47 @@ x.shutdown()""")
 
     logger.info("*"*80)
 
+def generate_gremlin_query_for_perf(graph_queries_directory):
+    if graph_queries_directory[-1] != "/":
+        graph_queries_directory+="/"
+    all_files = glob.glob(graph_queries_directory + "*.gremlin")
+    
+    for each in all_files:
+        name_of_file = each.split("/")[-1].split(".")[0]
+        base = "/gremlin_query_perf/"
+        sparksee_filehandler = open(base + "sparksee_" + name_of_file + ".groovy", "w")
+        sparksee_filehandler.write("""import com.tinkerpop.blueprints.impls.sparksee.*;
+x = new SparkseeGraph("/tmp/sparksee_perf.gdb");\n""");
+        sparksee_filehandler.write("""println "======Query %s======";
+s = System.currentTimeMillis();\n"""%(name_of_file));
+        sparksee_filehandler.write(open(each, "r").read() + "\n")
+        sparksee_filehandler.write("println (System.currentTimeMillis() - s);")
+        sparksee_filehandler.close()
+
+        tinker_filehandler = open(base + "tinker_" + name_of_file + ".groovy", "w")
+        tinker_filehandler.write('x = new TinkerGraph("/tmp/tinker_perf");\n')
+        tinker_filehandler.write("""println "======Query %s======";
+s = System.currentTimeMillis();\n"""%(name_of_file));
+        tinker_filehandler.write(open(each, "r").read() + "\n")
+        tinker_filehandler.write("println (System.currentTimeMillis() - s);")
+        tinker_filehandler.close()
+
+        neo4j_filehandler = open(base + "neo4j_" + name_of_file + ".groovy", "w")
+        neo4j_filehandler.write('x = new Neo4jGraph("/tmp/neo4j_perf");\n')
+        neo4j_filehandler.write("""println "======Query %s======";
+s = System.currentTimeMillis();\n"""%(name_of_file));
+        neo4j_filehandler.write(open(each, "r").read() + "\n")
+        neo4j_filehandler.write("println (System.currentTimeMillis() - s);")
+        neo4j_filehandler.close()
+
+        orient_filehandler = open(base + "orient_" + name_of_file + ".groovy", "w")
+        orient_filehandler.write('x = new OrientGraph("memory:/orient_perf");\n')
+        orient_filehandler.write("println('======Query %s======');\n"%(name_of_file));
+        orient_filehandler.write("s = System.currentTimeMillis();\n");
+        orient_filehandler.write(open(each, "r").read().strip("\r\n").strip("\n\r"))
+        orient_filehandler.write('println (System.currentTimeMillis() - s) ;\n')
+        orient_filehandler.close()
+
 def sanity_checks(args):
     logger.info("*"*80)
     logger.info("Running the sanity checks")
@@ -1198,16 +1334,16 @@ def sanity_checks(args):
     logger.info("All the arguments are valid") 
     return True
 
-def process_perf_file(file_name, csv_list, graph_dms, action):
+def process_perf_file(file_name, csv_list, graph_dms, action, query_number):
     q = open(file_name, "r")
     all_lines = q.readlines()
     run_id = 1
     not_supported = []
     csv_list_2 = []
-    l = [graph_dms, action, str(run_id)]
+    l = [graph_dms, action, query_number, str(run_id)]
     for each in all_lines[1:]:
         if each[0] == "#":
-            l = [graph_dms, action, str(run_id)]
+            l = [graph_dms, action, query_number, str(run_id)]
             for each in csv_list_2:
                 l.append(each[1])
             csv_list.append(l)
@@ -1220,19 +1356,19 @@ def process_perf_file(file_name, csv_list, graph_dms, action):
                 value = value.replace(",", "")
                 value = float(value)
                 csv_list_2.append([key, str(value)])
-    l = [graph_dms, action, str(run_id)]    
+    l = [graph_dms, action, query_number, str(run_id)]    
     for each in csv_list_2:
         l.append(each[1])
     csv_list.append(l)
     
-    headers = ["Graph DMS", "action", "run_id"]
+    headers = ["Graph DMS", "action", "query_number", "run_id"]
     for each in csv_list_2:
         headers.append(each[0])
 
     return csv_list, headers    
 
 
-def process_perf_group(all_files, action_type):
+def process_perf_group(all_files, action_type, query_number):
     dic_csv = {}
     dic_csv_headers = {}    
     for each in all_files:
@@ -1241,34 +1377,116 @@ def process_perf_group(all_files, action_type):
         csv_list = []
         print(name_of_file)
         graph_dms = each.split("/")[-2]
-        temp_list, temp_headers = process_perf_file(each, csv_list, graph_dms, action_type)
+        temp_list, temp_headers = process_perf_file(each, csv_list, graph_dms, action_type, query_number)
         dic_csv[file_number] = temp_list        
         dic_csv_headers[file_number] = temp_headers
     return dic_csv_headers, dic_csv
 
-def process_all_perfs_dms(perf_directory):
+def process_all_perfs_graph_dms(perf_directory):
     headers = []
     
     if perf_directory[-1]!="/":
         perf_directory = perf_directory + "/"    
 
     all_files = glob.glob(perf_directory + "load_log_perf*")
-    dic_load_headers, dic_load = process_perf_group(all_files, "load") 
+    dic_load_headers, dic_load = process_perf_group(all_files, "load", "NA") 
 
     all_files = glob.glob(perf_directory + "cold_query_log_perf*")
-    dic_query_cold_headers, dic_cold = process_perf_group(all_files, "query_cold")
+    dic_query_cold_headers, dic_cold = process_perf_group(all_files, "query_cold", "all")
 
     all_files = glob.glob(perf_directory + "hot_query_log_perf*")
-    dic_query_hot_headers, dic_hot = process_perf_group(all_files, "query_hot")
+    dic_query_hot_headers, dic_hot = process_perf_group(all_files, "query_hot", "hot")
     
     return [dic_load_headers, dic_load, dic_cold, dic_hot] 
+
+def process_all_perfs_rdf_dms(perf_directory, query_directory):    
+    headers = []
     
+    if perf_directory[-1]!="/":
+        perf_directory = perf_directory + "/"    
+
+    all_files = glob.glob(perf_directory + "load_log_perf*")
+    dic_load_headers, dic_load = process_perf_group(all_files, "load", "NA") 
+    
+    dic_hot_queries = {}
+    dic_cold_queries = {}
+    all_queries = glob.glob(query_directory + "/*.sparql")
+    for each in all_queries:
+        name_of_file = each.split("/")[-1].split(".")[0]
+        all_files = glob.glob(perf_directory + "query_hot_logs_perf.log.%s*" % (name_of_file))
+        l,m = process_perf_group(all_files, "query_hot", name_of_file)
+        dic_hot_queries[name_of_file] = m
+        all_files = glob.glob(perf_directory + "query_cold_logs_perf.log.%s*" % (name_of_file))
+        l,m = process_perf_group(all_files, "query_cold", name_of_file)
+        dic_cold_queries[name_of_file] = m
+
+    print(dic_load_headers)
+    return (dic_load_headers, dic_load, dic_hot_queries, dic_cold_queries)
+
+def generate_perf_csv_for_all_rdfs(name_of_file):
+    f = open(name_of_file, "w")
+    dic_all = {}
+    for each in directory_maps:
+        if "r_" in each:
+            dic_all[each] = process_all_perfs_rdf_dms("/var/log/%s/" % (directory_maps[each]), query_directory_maps[each])
+    
+    dic_load_headers = dic_all['r_jena'][0]
+    print(dic_load_headers)
+    f.write(",".join(dic_load_headers['1']))
+    f.write(",")
+    for i in range(2,5):
+        f.write(",".join(dic_load_headers[str(i)][4:]))
+        if i == 4:
+            continue
+        f.write(",")
+    f.write("\n")
+
+    for each in dic_all:
+        m = dic_all[each][1:]
+        all_loads = m[0]
+        for i in range(len(all_loads['1'])):
+            f.write(",".join(all_loads['1'][i]))
+            f.write(",")
+            f.write(",".join(all_loads['2'][i][4:]))
+            f.write(",")
+            f.write(",".join(all_loads['3'][i][4:]))
+            f.write(",")
+            f.write(",".join(all_loads['4'][i][4:]))
+            f.write("\n")
+        
+        all_hot = m[1]
+        for each in all_hot:
+            for i in range(len(all_hot[each]['1'])):
+                print(all_hot[each])        
+                f.write(",".join(all_hot[each]['1'][i]))
+                f.write(",")
+                f.write(",".join(all_hot[each]['2'][i][3:]))
+                f.write(",")
+                f.write(",".join(all_hot[each]['3'][i][3:]))
+                f.write(",")
+                f.write(",".join(all_hot[each]['4'][i][3:]))
+                f.write("\n")
+
+        all_cold = m[2]
+        for each in all_cold:
+            for i in range(len(all_cold[each]['1'])):        
+                f.write(",".join(all_cold[each]['1'][i]))
+                f.write(",")
+                f.write(",".join(all_cold[each]['2'][i][3:]))
+                f.write(",")
+                f.write(",".join(all_cold[each]['3'][i][3:]))
+                f.write(",")
+                f.write(",".join(all_cold[each]['4'][i][3:]))
+                f.write("\n")
+
+    f.close()                       
+
 def generate_perf_csv_for_all_graphs(name_of_file):
     f = open(name_of_file, "w")
     dic_all = {}
     for each in directory_maps:
         if "g_" in each:
-            dic_all[each] = process_all_perfs_dms("/var/log/%s/" % (directory_maps[each]))
+            dic_all[each] = process_all_perfs_graph_dms("/var/log/%s/" % (directory_maps[each]))
 
     dic_load_headers = dic_all["g_tinker"][0]
     f.write(",".join(dic_load_headers['1']))
@@ -1344,15 +1562,18 @@ if __name__ == "__main__":
                 args['graph_queries']+"/gremlin.groovy.hot_cache")
         generate_graph_queries_perf(args['graph_queries']+"/gremlin.groovy.cold_cache", \
                 args['graph_queries']+"/gremlin.groovy.hot_cache")
-
+        generate_gremlin_query_for_perf(args['graph_queries'])
         name_of_graph = glob.glob(args['graph_datafile'] + "/*")
         name_of_graph = name_of_graph[0]
 #        g_sparksee(total_runs, name_of_graph)
 #        g_orient(total_runs, name_of_graph)
 #        g_neo4j(total_runs, name_of_graph)
-        g_tinker_with_perf(total_runs, name_of_graph)
+        print("Called the function")
+        print("Please run")        
+        #g_sparksee_with_perf(1, name_of_graph)
+        g_orient_with_perf(1, name_of_graph)
         directory_maps = {'g_tinker' : 'tinker'}
-        generate_perf_csv_for_all_graphs("temp.csv")
+#        generate_perf_csv_for_all_graphs("temp.csv")
 #        graph_create_csv("graph.load.logs", "graph.query.logs", graph_based)
     if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
@@ -1360,8 +1581,14 @@ if __name__ == "__main__":
         name_of_graph = name_of_graph[0]
 
 #        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
-        r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
-        r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
+        directory_maps = {'r_jena' : 'jena'}
+
+        r_jena_with_perf(1, '/jena_queries', name_of_graph)
+        generate_perf_csv_for_all_rdfs("temp_rdf.csv")
+        #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
+        #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
 #        r_jena(total_runs, "/jena_queries", name_of_graph)
         #rdf_create_csv("rdf.load.logs", "rdf.query.logs", rdf_based)
+
+
