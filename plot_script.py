@@ -4,6 +4,35 @@ import matplotlib.pyplot as plt
 import argparse 
 import os
 
+graph_box = ["#b3e5ff", "#9ec5ff", "#00d9ff", "#00d6e6"]
+graph_line = ["#2300d1", "#190094", "#000a52", "#050099"]
+rdf_box = ["#72f443", "#59fa1e", "#aafd8c", "#60fb2d"]
+rdf_line = ["#195f02", "#195f02", "#195f02", "#195f02"]
+
+graph_based = ["orient", "neo4j", "tinker", "sparksee"]
+rdf_based = ["virtuoso", "rdf3x", "jena"]
+ 
+def create_box_and_line_colors(all_dms):
+    all_dms.sort()
+    box_colors = []
+    line_colors = []
+    g_count = 0
+    r_count = 0
+    for each in all_dms:
+        if each in graph_based:
+            box_colors.append(graph_box[g_count])
+            line_colors.append(graph_line[g_count])
+            g_count+=1
+        else:
+            box_colors.append(rdf_box[r_count])
+            line_colors.append(rdf_line[r_count])
+            r_count+=1
+    return (box_colors, line_colors)
+
+#box_colors = ['#336B87', '#68829E', '#C4DFE6', '#6FB98F', '#B7B8B6']
+#line_colors = ['#763626', '#598234', '#003B46', '#004485', '#34675C']
+
+
 def geo_mean(array):
     """This function calculates the geometric mean of an array of numbers.
     array : The array of numbers whose geometric mean is to be calculated."""
@@ -14,33 +43,139 @@ def har_mean(array):
     array : The array of numbers whose harmonic mean is to be calculated."""
     return ((sum([1/x for x in array]))**(-1))*len(array)
 
-def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
+def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph", line_w = 2):
     """This function plots and stores the data in form of latex tables for a given set of dms plots.
     loadfile : The csv file with the load times for all the DMS.
     queryfile : The csv file about the run times of different queries for all the DMS.
     graph_or_rdf : Graph for a graph based DMS, RDF for RDF based DMS."""
 
     load_data = pd.read_csv(loadfile, index_col = False)
-    #print(load_data)
-    #print(load_data.groupby(by = ['dms']).mean())
-    #print(load_data.groupby(by = ['dms']).std())
-    #print(load_data.groupby(by = ['dms']).median())
-    
-    
-    #All plots go here    
-    load_data.boxplot(column=['time'], by = ['dms'])
+
+    dmss = []
+    for each in load_data['dms']:
+        if each not in dmss:
+            dmss.append(each)
+
+    box_colors, line_colors = create_box_and_line_colors(dmss)
+    load_data_boxplot = load_data.boxplot(column=['time'], by = ['dms'], patch_artist = True, return_type = 'dict', fontsize = 14)
     plt.ylabel("Time (in milliseconds)")
     plt.title("Time taken for loading a dataset by the different %s based DMS" % (graph_or_rdf))
+
+    for i in range(len(load_data_boxplot['time']['fliers'])):
+        load_data_boxplot['time']['fliers'][i].set_color(line_colors[i%len(line_colors)])
+        load_data_boxplot['time']['fliers'][i].set_linewidth(line_w)
+
+
+    for i in range(len(load_data_boxplot['time']['medians'])):
+        load_data_boxplot['time']['medians'][i].set_color(line_colors[i%len(line_colors)])
+        load_data_boxplot['time']['medians'][i].set_linewidth(line_w)
+
+    for i in range(0,len(load_data_boxplot['time']['whiskers']),2):
+        load_data_boxplot['time']['whiskers'][i].set_color(line_colors[(i//2)%len(line_colors)])
+        load_data_boxplot['time']['whiskers'][i+1].set_color(line_colors[(i//2)%len(line_colors)])
+        load_data_boxplot['time']['whiskers'][i].set_linewidth(line_w)
+        load_data_boxplot['time']['whiskers'][i+1].set_linewidth(line_w)
+    
+
+    for i in range(0,len(load_data_boxplot['time']['caps']),2):
+        load_data_boxplot['time']['caps'][i].set_color(line_colors[(i//2)%len(line_colors)])
+        load_data_boxplot['time']['caps'][i+1].set_color(line_colors[(i//2)%len(line_colors)])
+        load_data_boxplot['time']['caps'][i].set_linewidth(line_w)
+        load_data_boxplot['time']['caps'][i+1].set_linewidth(line_w)
+
+    for i in range(len(load_data_boxplot['time']['boxes'])):
+        load_data_boxplot['time']['boxes'][i].set(color = line_colors[i%len(box_colors)])
+        load_data_boxplot['time']['boxes'][i].set(facecolor = box_colors[i%len(box_colors)])
+        load_data_boxplot['time']['boxes'][i].set_linewidth(line_w)
+
+
 
     query_data = pd.read_csv(queryfile, index_col = False)    
 
     hot_query_data = query_data[query_data['query_type']=='query_hot']
-    hot_query_data.boxplot(column = ['time'], by = ['dms', 'query_id'])
+
+    dmss = []
+    for each in hot_query_data['dms']:
+        if each not in dmss:
+            dmss.append(each)
+    box_colors, line_colors = create_box_and_line_colors(dmss)
+
+
+    hot_query_data_plot = hot_query_data.boxplot(column = ['time'], by = ['dms', 'query_id'], patch_artist = True, return_type = 'dict', fontsize = 14)
+    for i in range(len(hot_query_data_plot['time']['fliers'])):
+        hot_query_data_plot['time']['fliers'][i].set_color(line_colors[i%len(line_colors)])
+        hot_query_data_plot['time']['fliers'][i].set_linewidth(line_w)
+
+
+    for i in range(len(hot_query_data_plot['time']['medians'])):
+        hot_query_data_plot['time']['medians'][i].set_color(line_colors[i%len(line_colors)])
+        hot_query_data_plot['time']['medians'][i].set_linewidth(line_w)
+
+    for i in range(0,len(hot_query_data_plot['time']['whiskers']),2):
+        hot_query_data_plot['time']['whiskers'][i].set_color(line_colors[(i//2)%len(line_colors)])
+        hot_query_data_plot['time']['whiskers'][i+1].set_color(line_colors[(i//2)%len(line_colors)])
+        hot_query_data_plot['time']['whiskers'][i].set_linewidth(line_w)
+        hot_query_data_plot['time']['whiskers'][i+1].set_linewidth(line_w)
+    
+
+    for i in range(0,len(hot_query_data_plot['time']['caps']),2):
+        hot_query_data_plot['time']['caps'][i].set_color(line_colors[(i//2)%len(line_colors)])
+        hot_query_data_plot['time']['caps'][i+1].set_color(line_colors[(i//2)%len(line_colors)])
+        hot_query_data_plot['time']['caps'][i].set_linewidth(line_w)
+        hot_query_data_plot['time']['caps'][i+1].set_linewidth(line_w)
+
+    for i in range(len(hot_query_data_plot['time']['boxes'])):
+        hot_query_data_plot['time']['boxes'][i].set(color = line_colors[i%len(box_colors)])
+        hot_query_data_plot['time']['boxes'][i].set(facecolor = box_colors[i%len(box_colors)])
+        hot_query_data_plot['time']['boxes'][i].set_linewidth(line_w)
+
+
+
+
+
     plt.ylabel("Time (in milliseconds)")
     plt.title("Time taken for running queries on a dataset by the different %s based DMS (Hot Cache)"%(graph_or_rdf))
 
+
     cold_query_data = query_data[query_data['query_type']=='query_cold']
-    cold_query_data.boxplot(column = ['time'], by = ['dms', 'query_id'])
+
+    dmss = []
+    for each in cold_query_data['dms']:
+        if each not in dmss:
+            dmss.append(each)
+    box_colors, line_colors = create_box_and_line_colors(dmss)
+
+    cold_query_data_plot = cold_query_data.boxplot(column = ['time'], by = ['dms', 'query_id'], patch_artist = True, fontsize = 14, return_type = 'dict')
+
+    for i in range(len(cold_query_data_plot['time']['fliers'])):
+        cold_query_data_plot['time']['fliers'][i].set_color(line_colors[i%len(line_colors)])
+        cold_query_data_plot['time']['fliers'][i].set_linewidth(line_w)
+
+
+    for i in range(len(cold_query_data_plot['time']['medians'])):
+        cold_query_data_plot['time']['medians'][i].set_color(line_colors[i%len(line_colors)])
+        cold_query_data_plot['time']['medians'][i].set_linewidth(line_w)
+
+    for i in range(0,len(cold_query_data_plot['time']['whiskers']),2):
+        cold_query_data_plot['time']['whiskers'][i].set_color(line_colors[(i//2)%len(line_colors)])
+        cold_query_data_plot['time']['whiskers'][i+1].set_color(line_colors[(i//2)%len(line_colors)])
+        cold_query_data_plot['time']['whiskers'][i].set_linewidth(line_w)
+        cold_query_data_plot['time']['whiskers'][i+1].set_linewidth(line_w)
+    
+
+    for i in range(0,len(cold_query_data_plot['time']['caps']),2):
+        cold_query_data_plot['time']['caps'][i].set_color(line_colors[(i//2)%len(line_colors)])
+        cold_query_data_plot['time']['caps'][i+1].set_color(line_colors[(i//2)%len(line_colors)])
+        cold_query_data_plot['time']['caps'][i].set_linewidth(line_w)
+        cold_query_data_plot['time']['caps'][i+1].set_linewidth(line_w)
+
+    for i in range(len(cold_query_data_plot['time']['boxes'])):
+        cold_query_data_plot['time']['boxes'][i].set(color = line_colors[i%len(box_colors)])
+        cold_query_data_plot['time']['boxes'][i].set(facecolor = box_colors[i%len(box_colors)])
+        cold_query_data_plot['time']['boxes'][i].set_linewidth(line_w)
+
+
+
     plt.ylabel("Time (in milliseconds)")
     plt.title("Time taken for running queries on a dataset by the different %s based DMS (Cold Cache)"%(graph_or_rdf))
 
@@ -89,7 +224,108 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
             'max':max_cold_query_data['time']})
     df_cold_query_time.name = 'cold_query_time'
 
-    save_tables(os.getcwd() + "/tables/", [df_load_time, df_hot_query_time, df_cold_query_time], graph_or_rdf)
+    #save_tables("/tables/", [df_load_time, df_hot_query_time, df_cold_query_time], graph_or_rdf)
+
+def perf_specific_parameter(panda_dataframe, action, parameter_name, graph_or_rdf, line_w = 2):
+    target_dataframe = panda_dataframe[panda_dataframe['action'] == action]
+    groupby = None
+    plt_title = None
+    if action == 'load':
+        groupby = ['DMS']
+        plt_title = "%s for loading a dataset by the different %s based DMS" % (parameter_name, graph_or_rdf)
+    elif action == 'query_hot':
+        groupby = ['DMS', 'query_number']
+        plt_title = "%s for running queries on a dataset by the different %s based DMS (Hot Cache)"%(parameter_name, graph_or_rdf)
+    else:
+        groupby = ['DMS', 'query_number']
+        plt_title = "%s for running queries on a dataset by the different %s based DMS (Cold Cache)"%(parameter_name, graph_or_rdf)
+
+    #All data-analysis goes here
+    df_ = None    
+    if action == 'load':
+        mean_ = target_dataframe.groupby(by = groupby, as_index = False).mean()
+        var_ = target_dataframe.groupby(by = groupby, as_index = False).var()
+        median_ = target_dataframe.groupby(by = groupby, as_index = False).median()
+        geomean_ = target_dataframe.groupby(by = groupby, as_index = False).aggregate(geo_mean)
+        harmean_ = target_dataframe.groupby(by = groupby, as_index = False).aggregate(har_mean)
+        min_ = target_dataframe.groupby(by = groupby, as_index = False).min()
+        max_ = target_dataframe.groupby(by = groupby, as_index = False).max()
+        df_ = pd.DataFrame({'dms':mean_['DMS'], \
+                'mean':mean_[parameter_name], 'variance':var_[parameter_name], \
+                'median':median_[parameter_name], 'geom_mean':geomean_[parameter_name], \
+                'har_mean':harmean_[parameter_name], 'min':min_[parameter_name], \
+                'max':max_[parameter_name]})
+        df_.name = 'load_time'
+
+    else:
+        mean_ = target_dataframe.groupby(by = groupby, as_index = False).mean()
+        var_ = target_dataframe.groupby(by = groupby, as_index = False).var()
+        median_ = target_dataframe.groupby(by = groupby, as_index = False).median()
+        geomean_ = target_dataframe.groupby(by = groupby, as_index = False).aggregate(geo_mean)
+        harmean_ = target_dataframe.groupby(by = groupby, as_index = False).aggregate(har_mean)
+        min_ = target_dataframe.groupby(by = groupby, as_index = False).min()
+        max_ = target_dataframe.groupby(by = groupby, as_index = False).max()
+        df_ = pd.DataFrame({'dms':mean_['DMS'], 'query_number' : mean_['query_number'],\
+                'mean':mean_[parameter_name], 'variance':var_[parameter_name], \
+                'median':median_[parameter_name], 'geom_mean':geomean_[parameter_name], \
+                'har_mean':harmean_[parameter_name], 'min':min_[parameter_name], \
+                'max':max_[parameter_name]})
+        df_.name = graph_or_rdf + "_" + action + "_" + parameter
+
+
+    boxp = target_dataframe.boxplot(column = [parameter_name], by = groupby, patch_artist = True, return_type = 'dict', fontsize = 14)    
+    plt.ylabel(parameter_name)
+    plt.title(plt_title)
+
+    
+    dmss = []
+    for each in target_dataframe['DMS']:
+        if each not in dmss:
+            dmss.append(each)
+
+    box_colors, line_colors = create_box_and_line_colors(dmss)
+
+    for i in range(len(boxp[parameter_name]['fliers'])):
+        boxp[parameter_name]['fliers'][i].set_color(line_colors[i%len(line_colors)])
+        boxp[parameter_name]['fliers'][i].set_linewidth(line_w)
+
+
+    for i in range(len(boxp[parameter_name]['medians'])):
+        boxp[parameter_name]['medians'][i].set_color(line_colors[i%len(line_colors)])
+        boxp[parameter_name]['medians'][i].set_linewidth(line_w)
+
+    for i in range(0,len(boxp[parameter_name]['whiskers']),2):
+        boxp[parameter_name]['whiskers'][i].set_color(line_colors[(i//2)%len(line_colors)])
+        boxp[parameter_name]['whiskers'][i+1].set_color(line_colors[(i//2)%len(line_colors)])
+        boxp[parameter_name]['whiskers'][i].set_linewidth(line_w)
+        boxp[parameter_name]['whiskers'][i+1].set_linewidth(line_w)
+    
+
+    for i in range(0,len(boxp[parameter_name]['caps']),2):
+        boxp[parameter_name]['caps'][i].set_color(line_colors[(i//2)%len(line_colors)])
+        boxp[parameter_name]['caps'][i+1].set_color(line_colors[(i//2)%len(line_colors)])
+        boxp[parameter_name]['caps'][i].set_linewidth(line_w)
+        boxp[parameter_name]['caps'][i+1].set_linewidth(line_w)
+
+    for i in range(len(boxp[parameter_name]['boxes'])):
+        boxp[parameter_name]['boxes'][i].set(color = line_colors[i%len(box_colors)])
+        boxp[parameter_name]['boxes'][i].set(facecolor = box_colors[i%len(box_colors)])
+        boxp[parameter_name]['boxes'][i].set_linewidth(line_w)
+    
+    return df_
+
+def dms_plots_perf_data(perffile, action, parameters, graph_or_rdf = "Graph"):
+    """This function plots and stores the perf data in form of latex tables for a given set of dms plots.
+    loadfile : The csv file with the load times for all the DMS.
+    queryfile : The csv file about the run times of different queries for all the DMS.
+    graph_or_rdf : Graph for a graph based DMS, RDF for RDF based DMS."""
+
+    all_data = pd.read_csv(perffile, index_col = False)
+    list_of_tables = []
+    for each in parameters:
+        list_of_tables.append(perf_specific_parameter(all_data, action, each, graph_or_rdf))
+    #save_tables(os.getcwd() + "/tables/", list_of_tables, graph_or_rdf)
+
 
 def save_tables(directory, l, dms):
     """The function saves all the tables in tex format.
@@ -114,6 +350,13 @@ def save_plot(directory):
         plt.savefig(directory + 'figure%d.png' % i)
 
 
+def pre_run():
+    if not os.path.exists("/plots/"):
+        os.mkdir("/plots/")
+    
+    if not os.path.exists("/tables/"):
+        os.mkdir("/tables/")
+
 def sanity_check(loadfile, queryfile):
     """The function runs a certain sanity checks before running the code.
     loadfile : The path of the loadfile.
@@ -127,11 +370,6 @@ def sanity_check(loadfile, queryfile):
         print("Error: The path for the query csv file does not exist")
         return False
 
-    if not os.path.exists("/plots/"):
-        os.mkdir("/plots/")
-    
-    if not os.path.exists("/tables/"):
-        os.mkdir("/tables/")
 
     """
     if not os.path.exists("/plots"):
@@ -143,20 +381,26 @@ if __name__ == "__main__" :
     parser = argparse.ArgumentParser(description='The Litmus Plotter')
     parser.add_argument('-lg', '--load_graph_csv', help='The location of the load csv file for Graph', required = True)
     parser.add_argument('-qg', '--query_graph_csv', help='The location of the queries csv file for Graph', required = True)
-    parser.add_argument('-lr', '--load_rdf_csv', help='The location of the load csv file for RDF', required = True)
-    parser.add_argument('-qr', '--query_rdf_csv', help='The location of the queries csv file for RDF', required = True)
+#    parser.add_argument('-lr', '--load_rdf_csv', help='The location of the load csv file for RDF', required = True)
+#    parser.add_argument('-qr', '--query_rdf_csv', help='The location of the queries csv file for RDF', required = True)
 
     args = vars(parser.parse_args())
-    if not sanity_check(args['load_graph_csv'], args['query_graph_csv']):
-        exit(-1)
+#    if not sanity_check(args['load_graph_csv'], args['query_graph_csv']):
+#        exit(-1)
     
-    if not sanity_check(args['load_rdf_csv'], args['query_rdf_csv']):
-        exit(-1)
+#    if not sanity_check(args['load_rdf_csv'], args['query_rdf_csv']):
+#        exit(-1)
 
-    dms_plots(args['load_graph_csv'], args['query_graph_csv'], "Graph")
-    dms_plots(args['load_rdf_csv'], args['query_rdf_csv'], "RDF")
+    #dms_plots(args['load_graph_csv'], args['query_graph_csv'], "Graph")
+#    dms_plots(args['load_rdf_csv'], args['query_rdf_csv'], "RDF")
+    #pre_run()
+    font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 18}
 
+    plt.rc('font', **font)
 
-    save_plot("/plots/")
-        
+    dms_plots_perf_data("temp_rdf.csv", "load", ['L1-dcache-loads', 'L1-dcache-load-misses'] , graph_or_rdf = "RDF")
+    #save_plot("/plots/")
+    
     plt.show()
