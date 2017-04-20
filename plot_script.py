@@ -5,12 +5,21 @@ import argparse
 import os
 
 def geo_mean(array):
+    """This function calculates the geometric mean of an array of numbers.
+    array : The array of numbers whose geometric mean is to be calculated."""
     return (reduce(lambda x, y: x*y, array))**(1.0/len(array))
 
 def har_mean(array):
+    """This function calculates the harmonic mean of an array of numbers.
+    array : The array of numbers whose harmonic mean is to be calculated."""
     return ((sum([1/x for x in array]))**(-1))*len(array)
 
 def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
+    """This function plots and stores the data in form of latex tables for a given set of dms plots.
+    loadfile : The csv file with the load times for all the DMS.
+    queryfile : The csv file about the run times of different queries for all the DMS.
+    graph_or_rdf : Graph for a graph based DMS, RDF for RDF based DMS."""
+
     load_data = pd.read_csv(loadfile, index_col = False)
     #print(load_data)
     #print(load_data.groupby(by = ['dms']).mean())
@@ -83,6 +92,10 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph"):
     save_tables(os.getcwd() + "/tables/", [df_load_time, df_hot_query_time, df_cold_query_time], graph_or_rdf)
 
 def save_tables(directory, l, dms):
+    """The function saves all the tables in tex format.
+    directory : The directory where all the tables are stored.
+    l : The list of all the tables.
+    dms : The name of the DMS whose tables are stored."""
     if directory[-1]!="/":
         directory = directory + "/"
     for i in l:
@@ -91,6 +104,8 @@ def save_tables(directory, l, dms):
         file_handler.close()
 
 def save_plot(directory):
+    """The function saves all the plots in png format.
+    directory : The directory where all the png formats are stored."""
     if directory[-1]!="/":
         directory = directory + "/"
     for i in plt.get_fignums():
@@ -100,6 +115,10 @@ def save_plot(directory):
 
 
 def sanity_check(loadfile, queryfile):
+    """The function runs a certain sanity checks before running the code.
+    loadfile : The path of the loadfile.
+    queryfile : The path of the queryfile.
+    """
     if not os.path.exists(loadfile):
         print("Error: The path for the load csv file does not exist")
         return False
