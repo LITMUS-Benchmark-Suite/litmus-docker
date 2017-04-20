@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import argparse 
 import os
 
-graph_box = ["#b3e5ff", "#9ec5ff", "#00d9ff", "#00d6e6"]
-graph_line = ["#2300d1", "#190094", "#000a52", "#050099"]
-rdf_box = ["#72f443", "#59fa1e", "#aafd8c", "#60fb2d"]
-rdf_line = ["#195f02", "#195f02", "#195f02", "#195f02"]
+rdf_box = {"o": "#b3e5ff", "rdf3x" : "#9ec5ff", "jena" : "#00d9ff", "virtuoso" : "#00d6e6"}
+rdf_line = {"o": "#2300d1", "rdf3x" : "#190094", "jena" : "#000a52", "virtuoso" : "#050099"}
+graph_box = {"sparksee" : "#72f443", "tinker" : "#59fa1e", "orient":"#aafd8c", "neo4j":"#60fb2d"}
+graph_line = {"sparksee" : "#195f02", "tinker" : "#195f02", "orient":"#195f02", "neo4j":"#195f02"}
 
 graph_based = ["orient", "neo4j", "tinker", "sparksee"]
 rdf_based = ["virtuoso", "rdf3x", "jena"]
@@ -16,17 +16,13 @@ def create_box_and_line_colors(all_dms):
     all_dms.sort()
     box_colors = []
     line_colors = []
-    g_count = 0
-    r_count = 0
     for each in all_dms:
         if each in graph_based:
-            box_colors.append(graph_box[g_count])
-            line_colors.append(graph_line[g_count])
-            g_count+=1
+            box_colors.append(graph_box[each])
+            line_colors.append(graph_line[each])
         else:
-            box_colors.append(rdf_box[r_count])
-            line_colors.append(rdf_line[r_count])
-            r_count+=1
+            box_colors.append(rdf_box[each])
+            line_colors.append(rdf_line[each])
     return (box_colors, line_colors)
 
 #box_colors = ['#336B87', '#68829E', '#C4DFE6', '#6FB98F', '#B7B8B6']
@@ -93,11 +89,11 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph", line_w = 2):
     query_data = pd.read_csv(queryfile, index_col = False)    
 
     hot_query_data = query_data[query_data['query_type']=='query_hot']
-
+    zz = hot_query_data.groupby(['dms','query_id'], as_index = False).mean()
+        
     dmss = []
-    for each in hot_query_data['dms']:
-        if each not in dmss:
-            dmss.append(each)
+    for each in zz['dms']:
+        dmss.append(each)
     box_colors, line_colors = create_box_and_line_colors(dmss)
 
 
@@ -138,11 +134,11 @@ def dms_plots(loadfile, queryfile, graph_or_rdf = "Graph", line_w = 2):
 
 
     cold_query_data = query_data[query_data['query_type']=='query_cold']
+    zz = cold_query_data.groupby(['dms','query_id'], as_index = False).mean()
 
     dmss = []
-    for each in cold_query_data['dms']:
-        if each not in dmss:
-            dmss.append(each)
+    for each in zz['dms']:
+        dmss.append(each)
     box_colors, line_colors = create_box_and_line_colors(dmss)
 
     cold_query_data_plot = cold_query_data.boxplot(column = ['time'], by = ['dms', 'query_id'], patch_artist = True, fontsize = 14, return_type = 'dict')
@@ -230,6 +226,7 @@ def perf_specific_parameter(panda_dataframe, action, parameter_name, graph_or_rd
     target_dataframe = panda_dataframe[panda_dataframe['action'] == action]
     groupby = None
     plt_title = None
+    
     if action == 'load':
         groupby = ['DMS']
         plt_title = "%s for loading a dataset by the different %s based DMS" % (parameter_name, graph_or_rdf)
@@ -256,6 +253,7 @@ def perf_specific_parameter(panda_dataframe, action, parameter_name, graph_or_rd
                 'har_mean':harmean_[parameter_name], 'min':min_[parameter_name], \
                 'max':max_[parameter_name]})
         df_.name = 'load_time'
+        
 
     else:
         mean_ = target_dataframe.groupby(by = groupby, as_index = False).mean()
@@ -278,10 +276,9 @@ def perf_specific_parameter(panda_dataframe, action, parameter_name, graph_or_rd
     plt.title(plt_title)
 
     
-    dmss = []
-    for each in target_dataframe['DMS']:
-        if each not in dmss:
-            dmss.append(each)
+    zz = target_dataframe.groupby(groupby, as_index = False)
+    for each in zz['DMS']:
+        dmss.append(each)
 
     box_colors, line_colors = create_box_and_line_colors(dmss)
 
@@ -391,7 +388,7 @@ if __name__ == "__main__" :
 #    if not sanity_check(args['load_rdf_csv'], args['query_rdf_csv']):
 #        exit(-1)
 
-    #dms_plots(args['load_graph_csv'], args['query_graph_csv'], "Graph")
+    dms_plots(args['load_graph_csv'], args['query_graph_csv'], "Graph")
 #    dms_plots(args['load_rdf_csv'], args['query_rdf_csv'], "RDF")
     #pre_run()
     font = {'family' : 'normal',
@@ -400,7 +397,7 @@ if __name__ == "__main__" :
 
     plt.rc('font', **font)
 
-    dms_plots_perf_data("temp_rdf.csv", "load", ['L1-dcache-loads', 'L1-dcache-load-misses'] , graph_or_rdf = "RDF")
+    #dms_plots_perf_data("temp_rdf.csv", "load", ['L1-dcache-loads', 'L1-dcache-load-misses'] , graph_or_rdf = "RDF")
     #save_plot("/plots/")
     
     plt.show()
