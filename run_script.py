@@ -16,6 +16,7 @@ graph_based = ['g_sparksee', 'g_orient', 'g_neo4j', 'g_tinker' ]
 rdf_based = ['r_rdf3x', 'r_monet', 'r_jena', 'r_arq', 'r_virtuoso' ]
 
 
+#maps the DMS with the directories of their log files.
 directory_maps = { \
     'g_sparksee':'sparksee', \
     'g_orient' : 'orient', \
@@ -28,6 +29,7 @@ directory_maps = { \
     'r_virtuoso' : 'virtuoso'
     }
 
+#maps the DMS with the directories where the queries exist.
 query_directory_maps = { \
     'g_sparksee':'/gremlin_query_perf', \
     'g_orient' : '/gremlin_query_perf', \
@@ -38,6 +40,7 @@ query_directory_maps = { \
     'r_virtuoso' : '/virtuoso_queries'
     }
 
+#maps the DMS with the extension of their queries.
 query_extension_maps = { \
     'g_sparksee':'/sparsee_*.groovy', \
     'g_orient' : '/orient_*.groovy', \
@@ -50,6 +53,9 @@ query_extension_maps = { \
 
 def gather_data_graph_dms(dms):
     #Gather the data and put it in a csv format
+    """This function is used to process the log files for a rdf based dms and 
+    returns the data in form of a tuple of two lists.
+    dms : is the name of the Data Management Solution."""     
     logger.info("Inside the gather_data_graph_dms for %s" % (dms))
     csv_load = []
 
@@ -137,6 +143,9 @@ def gather_data_graph_dms(dms):
 
 def gather_data_rdf_dms(dms):
     #Gather the data and put it in a csv format
+    """This function is used to process the log files for a rdf based dms and 
+    returns the data in form of a tuple of two lists.
+    dms : is the name of the Data Management Solution.""" 
     logger.info("Inside the gather_data_rdf_dms for %s" % (dms))
 
     csv_load = []
@@ -218,30 +227,21 @@ def gather_data_rdf_dms(dms):
 
     return (csv_load, csv_query)
 
-def graph_create_csv(filename_load, filename_query, list_of_dbs):
+def create_csv_from_logs(filename_load, filename_query, list_of_dbs, graph_dms):
+    """This function creates a combined csv file which has the data 
+    about all the graph based dms or rdf based dms.
+    filename_load : name of the file where the loading time data is stored.
+    filename_query : name of the file where the query time data is stored.
+    list_of_dbs : where all the dbs which need to be processed are stored
+    graph_dms : True if it it graph based DMS, False if it is RDF based DMS"""
     load_logs = []
     query_logs = []
     for each in list_of_dbs:
-        load, query = gather_data_graph_dms(each)
-        load_logs = load_logs + load
-        query_logs = query_logs + query
-    load_handler = open(filename_load, "w")
-    load_handler.write("dms,run_id,load_type,time\n")
-    for each in load_logs:
-        load_handler.write(",".join(each) + "\n")
-    load_handler.close()
-
-    query_handler = open(filename_query, "w")
-    query_handler.write("dms,run_id,query_type,query_id,time\n")
-    for each in query_logs:
-        query_handler.write(",".join(each) + "\n")
-    query_handler.close()
-
-def rdf_create_csv(filename_load, filename_query, list_of_dbs):
-    load_logs = []
-    query_logs = []
-    for each in list_of_dbs:
-        load, query = gather_data_rdf_dms(each)
+        load, query = None, None    
+        if graph_dms:
+            load, query = gather_data_graph_dms(each)
+        else:
+            load, query = gather_data_rdf_dms(each)
         load_logs = load_logs + load
         query_logs = query_logs + query
     load_handler = open(filename_load, "w")
@@ -258,8 +258,19 @@ def rdf_create_csv(filename_load, filename_query, list_of_dbs):
 
 
 def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue = None):
+    """This function is the heart of the code. It is used to run the perf commands. Since 
+    the perf commands has a lot of parameters, and the hardware counters are limited, we break
+    the entire runs into four runs, and store them in four different log files and then combine the results.
+    command : The command which needs to be run.
+    log_file : The name of the base log file. Each perf sub command will have a different log_file.
+    clear_cache : Whether we need to clear the cache after every perf sub command.
+    prelogue : Which needs to be run before the command.
+    epilogue : which needs to be run after the command.
+    """
+
     clear_cache_command = "echo 3 > /proc/sys/vm/drop_caches"
 
+    #perf1, perf2, perf3 and perf4 are the four perf sub commands
     perf1 = "perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s" % (log_file+".1", command)
     perf2 = "perf stat -o %s --append -e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,dTLB-loads,dTLB-load-misses,dTLB-prefetch-misses -a %s" % (log_file + ".2", command)
     perf3 = "perf stat -o %s --append -e LLC-loads,LLC-load-misses,LLC-stores,LLC-prefetches -a %s" % (log_file + ".3", command)
@@ -311,12 +322,16 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
         subprocess.call(epilogue, shell = True)
 
 def g_sparksee_with_perf(runs, xmlFile):
-
+    """This function is used to run the sparksee DMS with perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
     logger.info("*"*80)
-    logger.info("Running the scripts for the Neo4j DMS With Perf")
+    logger.info("Running the scripts for the Sparksee DMS With Perf")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
 
     
+    logger.info("Running the command to load the databse")
     for each in range(runs):
         #Loading the database
         load_command = "/scripts/sparksee/SparkseeLoadPerf.sh /tmp/sparksee_load.gdb %s /var/log/sparksee/load_logs.log" % (xmlFile) 
@@ -330,6 +345,7 @@ def g_sparksee_with_perf(runs, xmlFile):
     load_command = "/scripts/sparksee/SparkseeQueryPerf_load.sh /tmp/sparksee_perf.gdb %s" % (xmlFile)
     subprocess.call(load_command, shell = True)
 
+    logger.info("Running the queries on hot cache for sparksee DMS")
     all_queries = glob.glob("/gremlin_query_perf/sparksee_*");
     for each in range(runs):
         command = 'echo "################Run %d################" >> %s' % (each, "/var/log/sparksee/query_hot_logs.log")
@@ -342,6 +358,7 @@ def g_sparksee_with_perf(runs, xmlFile):
 
     all_queries = glob.glob("/gremlin_query_perf/sparksee_*");
 
+    logger.info("Running the queries on cold cache for sparksee DMS")
     for each in range(runs):
         command = 'echo "################Run %d################" >> %s' % (each, "/var/log/sparksee/query_cold_logs.log")
         subprocess.call(command, shell = True)
@@ -355,7 +372,10 @@ def g_sparksee_with_perf(runs, xmlFile):
 
     
 def g_sparksee(runs, xmlFile):
-
+    """This function is used to run the sparksee DMS without perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
     logger.info("*"*80)
     logger.info("Running the scripts for the Sparksee DMS")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
@@ -392,11 +412,16 @@ def g_sparksee(runs, xmlFile):
     logger.info("*"*80)
 
 def g_tinker_with_perf(runs, xmlFile):
+    """This function is used to run the TinkerGraph DMS with perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
 
     logger.info("*"*80)
     logger.info("Running the scripts for the TinkerGraph DMS With Perf")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
 
+    logger.info("Running the command to load the databse")
     for each in range(runs):
         #Loading the database
         load_command = "/scripts/tinker/TinkerLoadPerf.sh /tmp/tinker.gdb %s /var/log/tinker/load_logs.log" % (xmlFile)
@@ -411,6 +436,9 @@ def g_tinker_with_perf(runs, xmlFile):
     subprocess.call(load_command, shell = True)
 
     all_queries = glob.glob("/gremlin_query_perf/tinker_*");
+
+    logger.info("Running the queries on TinkerGraph on cold cache")
+
     for each in range(runs):
         command = 'echo "################Run %d################" >> %s' % (each, "/var/log/tinker/query_cold_logs.log")
         subprocess.call(command, shell = True)
@@ -423,6 +451,8 @@ def g_tinker_with_perf(runs, xmlFile):
 
 
     all_queries = glob.glob("/gremlin_query_perf/tinker_*");
+    logger.info("Running the queries on TinkerGraph on hot cache")
+
     for each in range(runs):
         command = 'echo "################Run %d################" >> %s' % (each, "/var/log/tinker/query_hot_logs.log")
         subprocess.call(command, shell = True)
@@ -436,6 +466,10 @@ def g_tinker_with_perf(runs, xmlFile):
     logger.info("*"*80)
 
 def g_tinker(runs, xmlFile):
+    """This function is used to run the TinkerGraph DMS without perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
 
     logger.info("*"*80)
     logger.info("Running the scripts for the TinkerGraph DMS")
@@ -474,6 +508,12 @@ def g_tinker(runs, xmlFile):
 
 
 def r_rdf3x(runs, queryLocations, dataFile):
+    """This function is used to run the RDF3x DMS without perf tool.
+    runs : THe number of runs
+    queryLocations : The directories which has the SPARQL queries for RDF3x
+    dataFile : The location of the datafile.
+    """
+
     logger.info("*"*80)
     logger.info("Running the scripts for the RDF3x DMS")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocations, dataFile))
@@ -506,6 +546,12 @@ def r_rdf3x(runs, queryLocations, dataFile):
 
 
 def r_rdf3x_with_perf(runs, queryLocations, dataFile):
+    """This function is used to run the RDF3x DMS with perf tool.
+    runs : THe number of runs
+    queryLocations : The directories which has the SPARQL queries for RDF3x
+    dataFile : The location of the datafile.
+    """
+
     logger.info("*"*80)
     logger.info("Running the scripts for the RDF3x DMS with perf")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocations, dataFile))
@@ -542,11 +588,16 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile):
 
 
 def g_orient_with_perf(runs, xmlFile):
+    """This function is used to run the Orient DMS with perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
 
     logger.info("*"*80)
     logger.info("Running the scripts for the Orient DMS With Perf")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
 
+    logger.info("Running the load scripts for the Orient DMS")
     for each in range(runs):
         #Loading the database
         load_command = "/scripts/orient/OrientLoadPerf.sh /tmp/orient_load.gdb %s /scripts/orient/OrientLoadPerf.groovy /var/log/orient/load_logs.log" % (xmlFile)
@@ -558,6 +609,7 @@ def g_orient_with_perf(runs, xmlFile):
 
 
     all_queries = glob.glob("/gremlin_query_perf/orient_*");
+    logger.info("Running the queries for the Orient DMS on cold cache")    
     for each in range(runs):
         command = 'echo "################Run %d################" >> %s' % (each, "/var/log/orient/query_cold_logs.log")
         subprocess.call(command, shell = True)
@@ -569,6 +621,7 @@ def g_orient_with_perf(runs, xmlFile):
 
 
     all_queries = glob.glob("/gremlin_query_perf/orient_*");
+    logger.info("Running the queries for the Orient DMS on hot cache")
     for each in range(runs):
         command = 'echo "################Run %d################" >> %s' % (each, "/var/log/orient/query_hot_logs.log")
         subprocess.call(command, shell = True)
@@ -581,6 +634,11 @@ def g_orient_with_perf(runs, xmlFile):
     logger.info("*"*80)
 
 def g_orient(runs, xmlFile):
+    """This function is used to run the Orient DMS without perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
+
     logger.info("*"*80)
     logger.info("Running the scripts for the Orient DMS")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
@@ -618,11 +676,16 @@ def g_orient(runs, xmlFile):
 
 
 def g_neo4j_with_perf(runs, xmlFile):
+    """This function is used to run the Neo4jGraph DMS with perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
 
     logger.info("*"*80)
     logger.info("Running the scripts for the Neo4j DMS With Perf")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
 
+    logger.info("Running the load scripts for the Neo4j DMS ")
     for each in range(runs):
         #Loading the database
         load_command = "/scripts/neo4j/Neo4jLoadPerf.sh /tmp/neo4j_load.gdb %s /var/log/neo4j/load_logs.log" % (xmlFile) 
@@ -635,6 +698,7 @@ def g_neo4j_with_perf(runs, xmlFile):
     load_command = "/scripts/neo4j/Neo4jQueryPerf_load.sh /tmp/neo4j_perf %s /dev/null" % (xmlFile)
     subprocess.call(load_command, shell = True)
 
+    logger.info("Running the queries for the Neo4j DMS on hot cache")
     all_queries = glob.glob("/gremlin_query_perf/neo4j_*");
     for each in range(runs):
         command = 'echo "################Run %d################" >> %s' % (each, "/var/log/neo4j/query_hot_logs.log")
@@ -645,8 +709,9 @@ def g_neo4j_with_perf(runs, xmlFile):
             hot_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh %s /var/log/neo4j/query_hot_logs.log" % (each_query)
             run_perf(hot_query_command, "/var/log/neo4j/query_hot_logs_perf.log.%s" %(name_of_query))
 
-    all_queries = glob.glob("/gremlin_query_perf/neo4j_*");
 
+    logger.info("Running the queries for the Neo4j DMS on cold cache")
+    all_queries = glob.glob("/gremlin_query_perf/neo4j_*");
     for each in range(runs):
         command = 'echo "################Run %d################" >> %s' % (each, "/var/log/neo4j/query_cold_logs.log")
         subprocess.call(command, shell = True)
@@ -665,6 +730,11 @@ def g_neo4j_with_perf(runs, xmlFile):
 
 
 def g_neo4j(runs, xmlFile):
+    """This function is used to run the Neo4jGraph DMS without perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
+
     logger.info("*"*80)
     logger.info("Running the scripts for the Neo4j DMS")
     logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
@@ -705,6 +775,12 @@ def r_monet():
     pass
 
 def r_jena(runs, queryLocation, dataFile):
+    """This function is used to run the Jena DMS without perf tool.
+    runs : THe number of runs
+    queryLocation : The location of the sparql queries which would be run
+    dataFile : The location of the datafile.
+    """
+
     logger.info("*"*80)
     logger.info("Running the scripts for the Jena DMS")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocation, dataFile))
@@ -740,11 +816,18 @@ def r_arq():
 
 
 def r_jena_with_perf(runs, queryLocation, dataFile):
+    """This function is used to run the Jena DMS with perf tool.
+    runs : THe number of runs
+    queryLocation : The location of the sparql queries which would be run
+    dataFile : The location of the datafile.
+    """
+
     logger.info("*"*80)
-    logger.info("Running the scripts for the Jena DMS")
+    logger.info("Running the scripts for the Jena DMS with Perf")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocation, dataFile))
 
     
+    logger.info("Running the loading scripts for the Jena DMS")
     # Running the loads
     for each in range(runs):
         command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_%s %s /var/log/jena/load_logs.log" % (str(each), dataFile)
@@ -756,6 +839,7 @@ def r_jena_with_perf(runs, queryLocation, dataFile):
     command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_hot %s /dev/null" % (dataFile)
     subprocess.call(command, shell = True)    
 
+    logger.info("Running the queries for the Jena DMS on hot cache")
     m = glob.glob(queryLocation + "/*.sparql")
     for each_command in m:
         name_of_file = each_command.split("/")[-1].split(".")[0]
@@ -769,6 +853,7 @@ def r_jena_with_perf(runs, queryLocation, dataFile):
     command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_cold %s /dev/null" % (dataFile)
     subprocess.call(command, shell = True)    
 
+    logger.info("Running the queries for the Jena DMS on cold cache")
     m = glob.glob(queryLocation + "/*.sparql")
     for each_command in m:
         name_of_file = each_command.split("/")[-1].split(".")[0]
@@ -779,6 +864,12 @@ def r_jena_with_perf(runs, queryLocation, dataFile):
 
 
 def r_virtuoso(runs, queryLocation, dataFileLocation):
+    """This function is used to run the Openlink Virtuoso DMS without perf tool.
+    runs : THe number of runs
+    queryLocation : The location of the sparql queries which would be run
+    dataFileLocation : The location of the datafile.
+    """
+
     logger.info("*"*80)
     logger.info("Running the scripts for the Virtuoso DMS")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" \
@@ -817,6 +908,12 @@ def r_virtuoso(runs, queryLocation, dataFileLocation):
     #logger.info("*"*80)
 
 def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
+    """This function is used to run the Openlink Virtuoso DMS with perf tool.
+    runs : THe number of runs
+    queryLocation : The location of the sparql queries which would be run
+    dataFileLocation : The location of the datafile.
+    """
+
     logger.info("*"*80)
     logger.info("Running the scripts for the Virtuoso DMS with perf")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" \
@@ -834,6 +931,7 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
     os.system("cd /scripts/virtuoso && /usr/local/virtuoso-opensource/bin/virtuoso-t -f /scripts/virtuoso/ &")
     time.sleep(30)
 
+    logger.info("Running the loading scripts for the Virtuoso DMS")
     for each in range(runs):
         # Running the loads
         prelogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"
@@ -846,6 +944,7 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
     subprocess.call(prelogue, shell = True)
     subprocess.call(command, shell = True)
 
+    logger.info("Running the queries for the Virtuoso DMS on hot cache")
     m = glob.glob(queryLocation + "/*.sparql")
     for each_command in m:
         name_of_file = each_command.split("/")[-1].split(".")[0]
@@ -854,6 +953,7 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
             command = "/scripts/virtuoso/virtuoso_execute_hot_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_hot_logs.log %s" % (each_command)
             run_perf(command, "/var/log/virtuoso/query_hot_logs_perf.log.%s" %(name_of_file))
 
+    logger.info("Running the queries for the Virtuoso DMS on cold cache")
     m = glob.glob(queryLocation + "/*.sparql")
     for each_command in m:
         name_of_file = each_command.split("/")[-1].split(".")[0]
@@ -868,6 +968,8 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
 
 
 def create_log_files(list_to_benchmark):
+    """This function is used to create empty log files.
+    list_to_benchmark : list of DMS that would be benchmarked."""
     logger.info("*"*80)
     logger.info("Creating empty log files for all the DMS")
     for each in list_to_benchmark:
@@ -885,12 +987,14 @@ def foo(list_to_benchmark, runs = 10):
     pass
 
 def write_csv_file(csv_list, filename):
+    """Dunction is not being used anywhere"""    
     file_handler = open(filename, "w")
     for each in csv_list:
         file_handler.write(",".join(each) + "\n");
     file_handler.close()
 
 def get_name_of_file(file_location):
+    """Returns the name of the file given the entire path"""
     try:
         return file_location.split("/")[-1]
     except Exception as e:
@@ -898,7 +1002,8 @@ def get_name_of_file(file_location):
 
 def generate_rdf_queries(rdf_query_location):
     """This function will generate SPARQL query file for the 
-    Virtuoso RDF Model and the Apache Jena"""
+    Virtuoso RDF Model and the Apache Jena
+    rdf_query_location : Where the initial Sparql Queries are provided by the user"""
     logger.info("*"*80)
     logger.info("Creating rdf query files from queries present at %s \
         for Jena (/jena_queries) and Virtuoso (/virtuoso_queries)" % (rdf_query_location))
@@ -920,7 +1025,10 @@ def generate_rdf_queries(rdf_query_location):
 
 def generate_graph_queries_perf(gremlin_query_location_cold, gremlin_query_location_hot = None):
     """This function will generate the custom groovy files for all 
-        the four graph based dbs for perf based analysis"""
+        the four graph based dbs for analysis with perf tool.
+        gremlin_query_location_cold : The location where the query file for cold cache needs to be generated.        
+        gremlin_query_location_hot : The location where the query file for hot cache needs to be generated.        
+        """
     if gremlin_query_location_hot is None:
         gremlin_query_location_hot = gremlin_query_location_cold
     logger.info("*"*80)
@@ -1059,7 +1167,11 @@ println "==============Starting to Run The Queries=========="
 
 def generate_graph_queries(gremlin_query_location_cold, gremlin_query_location_hot = None):
     """This function will generate the custom groovy files for all 
-        the three graph based dbs"""
+        the graph based dbs
+        gremlin_query_location_cold : The location where the query file for cold cache needs to be generated.        
+        gremlin_query_location_hot : The location where the query file for hot cache needs to be generated.        
+        """
+
     if gremlin_query_location_hot is None:
         gremlin_query_location_hot = gremlin_query_location_cold
     logger.info("*"*80)
@@ -1239,6 +1351,11 @@ x.shutdown()""")
     logger.info("*"*80)
 
 def generate_gremlin_query_for_perf(graph_queries_directory):
+    """This function generates individual groovy file for each query to
+    run them using the perf based tool for all the graph based DMS.
+    graph_queries_directory : This is the initial location where all the gremlin queries 
+                            are provided by the user in individual files."""
+
     if graph_queries_directory[-1] != "/":
         graph_queries_directory+="/"
     all_files = glob.glob(graph_queries_directory + "*.gremlin")
@@ -1280,6 +1397,9 @@ s = System.currentTimeMillis();\n"""%(name_of_file));
         orient_filehandler.close()
 
 def sanity_checks(args):
+    """This function runs a few sanity checks before running the software.
+    args : The dictionary of the cli arguments which are provided to the script."""
+    
     logger.info("*"*80)
     logger.info("Running the sanity checks")
     is_sane = True
@@ -1345,16 +1465,23 @@ def sanity_checks(args):
     logger.info("All the arguments are valid") 
     return True
 
-def process_perf_file(file_name, csv_list, graph_dms, action, query_number):
+def process_perf_file(file_name, csv_list, dms, action, query_number):
+    """This function processes a single perf log file.
+    file_name : Name of the perf log file.
+    csv_list : This is a list which has all the lists.
+    dms : The name of the DMS.    
+    action : Whether it is a load action or a query action.
+    query_number : If it is a query action, then the query number.
+    """    
     q = open(file_name, "r")
     all_lines = q.readlines()
     run_id = 1
     not_supported = []
     csv_list_2 = []
-    l = [graph_dms, action, query_number, str(run_id)]
+    l = [dms, action, query_number, str(run_id)]
     for each in all_lines[1:]:
         if each[0] == "#":
-            l = [graph_dms, action, query_number, str(run_id)]
+            l = [dms, action, query_number, str(run_id)]
             for each in csv_list_2:
                 l.append(each[1])
             csv_list.append(l)
@@ -1367,12 +1494,12 @@ def process_perf_file(file_name, csv_list, graph_dms, action, query_number):
                 value = value.replace(",", "")
                 value = float(value)
                 csv_list_2.append([key, str(value)])
-    l = [graph_dms, action, query_number, str(run_id)]    
+    l = [dms, action, query_number, str(run_id)]    
     for each in csv_list_2:
         l.append(each[1])
     csv_list.append(l)
     
-    headers = ["Graph DMS", "action", "query_number", "run_id"]
+    headers = ["DMS", "action", "query_number", "run_id"]
     for each in csv_list_2:
         headers.append(each[0])
 
@@ -1380,6 +1507,11 @@ def process_perf_file(file_name, csv_list, graph_dms, action, query_number):
 
 
 def process_perf_group(all_files, action_type, query_number):
+    """This function process all the perf log files for a load operation or a single query.
+    all_files : The list of all the files for the particular action.
+    action : Whether it is a load action or a query action.
+    query_number : If it is a query action, then the query number.
+    """    
     dic_csv = {}
     dic_csv_headers = {}    
     for each in all_files:
@@ -1387,13 +1519,21 @@ def process_perf_group(all_files, action_type, query_number):
         file_number = name_of_file.split(".")[-1]
         csv_list = []
         print(name_of_file)
-        graph_dms = each.split("/")[-2]
-        temp_list, temp_headers = process_perf_file(each, csv_list, graph_dms, action_type, query_number)
+        dms = each.split("/")[-2]
+        temp_list, temp_headers = process_perf_file(each, csv_list, dms, action_type, query_number)
         dic_csv[file_number] = temp_list        
         dic_csv_headers[file_number] = temp_headers
     return dic_csv_headers, dic_csv
 
-def process_all_perfs_dms(perf_directory, query_directory, query_search_string, graph_based):    
+def process_all_perfs_dms(perf_directory, query_directory, query_search_string, graph_based):
+    """This function process all the perf log files for the load operations and the 
+        query operations for a given DMS.
+    perf_directory : The directory where all the perf log files are stored.
+    query_directory : The directory where all the queries are stored.
+    query_search_string : The search string for the query files in the query directory.
+    graph_based : This is a boolean which has a true value if it is a graph based DMS.
+    """    
+
     headers = []
     
     if perf_directory[-1]!="/":
@@ -1426,6 +1566,12 @@ def process_all_perfs_dms(perf_directory, query_directory, query_search_string, 
     return (dic_load_headers, dic_load, dic_hot_queries, dic_cold_queries)
 
 def generate_perf_csv_for_all_dms(type_of_dms, name_of_file):
+    """This function process all the perf log files for the given types of DMS and stores
+        it in a single csv file.
+    type_of_dms : g_ for graph based DMS, and r_ in case of RDF based DMS.
+    name_of_file : The name of the CSV file.
+    """    
+
     f = open(name_of_file, "w")
     dic_all = {}
     graph_based = False
@@ -1493,6 +1639,7 @@ def generate_perf_csv_for_all_dms(type_of_dms, name_of_file):
 
 
 def generate_perf_csv_for_all_graphs(name_of_file):
+    """Redundant function. Not being used anywhere"""
     f = open(name_of_file, "w")
     dic_all = {}
     for each in directory_maps:
@@ -1586,7 +1733,7 @@ if __name__ == "__main__":
         directory_maps = {'g_tinker' : 'tinker'}
         generate_perf_csv_for_all_dms("g_", "temp_graph.csv")
 #        generate_perf_csv_for_all_graphs("temp.csv")
-#        graph_create_csv("graph.load.logs", "graph.query.logs", graph_based)
+#        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
     if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.ttl")
@@ -1601,6 +1748,6 @@ if __name__ == "__main__":
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
 #        r_jena(total_runs, "/jena_queries", name_of_graph)
-        #rdf_create_csv("rdf.load.logs", "rdf.query.logs", rdf_based)
+        #create_csv_from_logs("rdf.load.logs", "rdf.query.logs", rdf_based, False)
 
 
