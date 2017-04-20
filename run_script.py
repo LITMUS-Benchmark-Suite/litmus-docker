@@ -1616,11 +1616,11 @@ def generate_perf_csv_for_all_dms(type_of_dms, name_of_file):
                 print(all_hot[each])        
                 f.write(",".join(all_hot[each]['1'][i]))
                 f.write(",")
-                f.write(",".join(all_hot[each]['2'][i][3:]))
+                f.write(",".join(all_hot[each]['2'][i][4:]))
                 f.write(",")
-                f.write(",".join(all_hot[each]['3'][i][3:]))
+                f.write(",".join(all_hot[each]['3'][i][4:]))
                 f.write(",")
-                f.write(",".join(all_hot[each]['4'][i][3:]))
+                f.write(",".join(all_hot[each]['4'][i][4:]))
                 f.write("\n")
 
         all_cold = m[2]
@@ -1628,11 +1628,11 @@ def generate_perf_csv_for_all_dms(type_of_dms, name_of_file):
             for i in range(len(all_cold[each]['1'])):        
                 f.write(",".join(all_cold[each]['1'][i]))
                 f.write(",")
-                f.write(",".join(all_cold[each]['2'][i][3:]))
+                f.write(",".join(all_cold[each]['2'][i][4:]))
                 f.write(",")
-                f.write(",".join(all_cold[each]['3'][i][3:]))
+                f.write(",".join(all_cold[each]['3'][i][4:]))
                 f.write(",")
-                f.write(",".join(all_cold[each]['4'][i][3:]))
+                f.write(",".join(all_cold[each]['4'][i][4:]))
                 f.write("\n")
 
     f.close()                       
