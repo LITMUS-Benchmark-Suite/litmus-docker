@@ -291,7 +291,7 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
         subprocess.call(epilogue, shell = True)
     print("FInished perf1")
 
-
+    sys.stdout.flush()
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
     if prelogue:
@@ -301,6 +301,7 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
     if epilogue:
         subprocess.call(epilogue, shell = True)
     print("FInished perf2")
+    sys.stdout.flush()
 
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
@@ -311,6 +312,7 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
     if epilogue:
         subprocess.call(epilogue, shell = True)
     print("Finished Perf3")
+    sys.stdout.flush()
 
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
@@ -320,6 +322,7 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
     subprocess.call(perf4, shell = True)
     if epilogue:
         subprocess.call(epilogue, shell = True)
+    sys.stdout.flush()
 
 def g_sparksee_with_perf(runs, xmlFile):
     """This function is used to run the sparksee DMS with perf tool.
@@ -698,18 +701,6 @@ def g_neo4j_with_perf(runs, xmlFile):
     load_command = "/scripts/neo4j/Neo4jQueryPerf_load.sh /tmp/neo4j_perf %s /dev/null" % (xmlFile)
     subprocess.call(load_command, shell = True)
 
-    logger.info("Running the queries for the Neo4j DMS on hot cache")
-    all_queries = glob.glob("/gremlin_query_perf/neo4j_*");
-    for each in range(runs):
-        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/neo4j/query_hot_logs.log")
-        subprocess.call(command, shell = True)
-        for each_query in all_queries:
-            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
-            print(name_of_query, "****************")
-            hot_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh %s /var/log/neo4j/query_hot_logs.log" % (each_query)
-            run_perf(hot_query_command, "/var/log/neo4j/query_hot_logs_perf.log.%s" %(name_of_query))
-
-
     logger.info("Running the queries for the Neo4j DMS on cold cache")
     all_queries = glob.glob("/gremlin_query_perf/neo4j_*");
     for each in range(runs):
@@ -721,6 +712,20 @@ def g_neo4j_with_perf(runs, xmlFile):
             run_perf(cold_query_command, "/var/log/neo4j/query_cold_logs_perf.log.%s" %(name_of_query), clear_cache = True)
 
         print("Finished running the cold query command")
+
+
+
+
+    logger.info("Running the queries for the Neo4j DMS on hot cache")
+    all_queries = glob.glob("/gremlin_query_perf/neo4j_*");
+    for each in range(runs):
+        command = 'echo "################Run %d################" >> %s' % (each, "/var/log/neo4j/query_hot_logs.log")
+        subprocess.call(command, shell = True)
+        for each_query in all_queries:
+            name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+            print(name_of_query, "****************")
+            hot_query_command = "/scripts/neo4j/Neo4jQueryPerf.sh %s /var/log/neo4j/query_hot_logs.log" % (each_query)
+            run_perf(hot_query_command, "/var/log/neo4j/query_hot_logs_perf.log.%s" %(name_of_query))
 
 
 
@@ -1384,8 +1389,9 @@ s = System.currentTimeMillis();\n"""%(name_of_file));
         neo4j_filehandler.write('x = new Neo4jGraph("/tmp/neo4j_perf");\n')
         neo4j_filehandler.write("""println "======Query %s======";
 s = System.currentTimeMillis();\n"""%(name_of_file));
-        neo4j_filehandler.write(open(each, "r").read() + "\n")
-        neo4j_filehandler.write("println (System.currentTimeMillis() - s);")
+        neo4j_filehandler.write(open(each, "r").read())
+        neo4j_filehandler.write("println (System.currentTimeMillis() - s);\n")
+        neo4j_filehandler.write("System.exit(0);")
         neo4j_filehandler.close()
 
         orient_filehandler = open(base + "orient_" + name_of_file + ".groovy", "w")
@@ -1577,15 +1583,15 @@ def generate_perf_csv_for_all_dms(type_of_dms, name_of_file):
     graph_based = False
     if type_of_dms == "g_":
         graph_based = True
-
+    find_header = None
+    
     for each in directory_maps:
         if type_of_dms in each:
             dic_all[each] = process_all_perfs_dms("/var/log/%s/" % (directory_maps[each]), query_directory_maps[each], query_extension_maps[each], graph_based)
-    
-    find_header = None
-    for each in dic_all:
-        find_header = each
+            find_header = each
 
+
+    print(dic_all)
     dic_load_headers = dic_all[find_header][0]
     print(dic_load_headers)
     f.write(",".join(dic_load_headers['1']))
@@ -1724,13 +1730,13 @@ if __name__ == "__main__":
         name_of_graph = glob.glob(args['graph_datafile'] + "/*")
         name_of_graph = name_of_graph[0]
 #        g_sparksee(total_runs, name_of_graph)
-#        g_orient(total_runs, name_of_graph)
+        g_neo4j_with_perf(total_runs, name_of_graph)
 #        g_neo4j(total_runs, name_of_graph)
         print("Called the function")
         print("Please run")        
-        #g_sparksee_with_perf(1, name_of_graph)
-        g_tinker_with_perf(1, name_of_graph)
-        directory_maps = {'g_tinker' : 'tinker'}
+#        g_sparksee_with_perf(1, name_of_graph)
+#        g_tinker_with_perf(1, name_of_graph)
+        directory_maps = {'g_neo4j' : 'neo4j'}
         generate_perf_csv_for_all_dms("g_", "temp_graph.csv")
 #        generate_perf_csv_for_all_graphs("temp.csv")
 #        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
