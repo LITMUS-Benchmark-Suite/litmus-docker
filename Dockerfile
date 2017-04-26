@@ -55,7 +55,8 @@ RUN git clone https://github.com/openlink/virtuoso-opensource.git \
 
 RUN apt-get install -y time
 
-RUN apt-get update linux-tools-common linux-tools-`uname -r`
+RUN apt-get update 
+RUN apt-get install -y linux-tools-common linux-tools-`uname -r`
 
 RUN apt-get install -y software-properties-common
 
@@ -154,11 +155,8 @@ ADD ./gremlin_query/* /gremlin_query/
 RUN mkdir /gremlin_query_perf
 
 # copying all the scripts
-ADD ./hello_world.py ./
-#ADD ./run_script.py ./
+#ADD ./hello_world.py ./
+ADD ./run_script.py ./
 
 
-CMD python3 run_script.py -g -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && cat temp_graph.csv graph.load.logs graph.query.logs
-#&& cat temp_rdf.csv && python3 plot_script.py && ls -lh /plots/* && ls -lh /tables/*
-#CMD ls /apache-jena-3.2.0/bin/*
-#CMD touch /var/log/tinker/load_log_perf.log.1 && perf stat -o /var/log/tinker/load_log_perf.log.1 --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a /scripts/tinker/TinkerLoadPerf.sh /tmp/tinker.gdb /graph_data/graph-example-1.xml /var/log/tinker/load_logs.log && cat /var/log/tinker/load_log_perf.log.1
+CMD python3 run_script.py -r -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && cat /var/log/jena/load_logs.log
