@@ -949,7 +949,7 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
         # Running the loads
         prelogue = ["cd /scripts/virtuoso && /usr/local/virtuoso-opensource/bin/virtuoso-t -f /scripts/virtuoso/ &", "sleep 30", "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"]
         command = "/scripts/virtuoso/virtuoso_load_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/load_logs.log"
-        epilogue = ["/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/clear.sql> /dev/null 2>> /dev/null;", "killall 9 virtuoso-t", "sleep 10", "rm /scripts/virtuoso/virtuoso.db /scripts/virtuoso/virtuoso.log /scripts/virtuoso/virtuoso.lck /scripts/virtuoso/virtuoso.trx /scripts/virtuoso/virtuoso.pxa /scripts/virtuoso/virtuoso-temp.db /scripts/virtuoso/virtuoso-temp.trx"] 
+        epilogue = ["/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/clear.sql> /dev/null 2>> /dev/null;", "killall virtuoso-t", "sleep 10", "rm /scripts/virtuoso/virtuoso.db /scripts/virtuoso/virtuoso.log /scripts/virtuoso/virtuoso.lck /scripts/virtuoso/virtuoso.trx /scripts/virtuoso/virtuoso.pxa /scripts/virtuoso/virtuoso-temp.db /scripts/virtuoso/virtuoso-temp.trx", "python3 /scripts/virtuoso/shuffle.py"] 
         run_perf(command, "/var/log/virtuoso/load_log_perf.log", clear_cache = True, prelogue = prelogue, epilogue = epilogue)
         #command = "killall 9 virtuoso-t"
         #subprocess.call(command, shell = True)

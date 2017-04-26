@@ -8,8 +8,8 @@ parser.add_argument('-qf', '--query_directory', help = 'Location where the queri
 parser.add_argument('-d','--directories_allowed', help='Mention all the directories from where the \
                         data can be loaded in form of ttl files. Defaults only to the \
                         current directory.', nargs = "*", required=False)
-parser.add_argument('-p','--port', help='The port number. Defaults to 1111', required=False)
-parser.add_argument('-n', '--runs', help='Number of times, the experiment should be conducted', required = False)
+#parser.add_argument('-p','--port', help='The port number. Defaults to 1111', required=False)
+parser.add_argument('-n', '--run_number', help='Run Number', required = False)
 parser.add_argument('-nb', '--number_of_buffers', help='Number of Buffers. Defaults to 10k. \
                         You can use the readme to consult what would be a good number.', required = False)
 parser.add_argument('-db', '--maximum_number_of_dirty_buffers', help='Maximum Number of Dirty Buffers. Defaults to 6k. \
@@ -23,7 +23,7 @@ location_of_db = args["location"]
 dirs_allowed = args["directories_allowed"] or ["."] 
 dirs_allowed.append(args["data_directory"])
 dirs_allowed = ", ".join(dirs_allowed)
-port = "1111" or args["port"]
+port = "1111" 
 num_of_buffers = 10000 or args["number_of_buffers"]
 max_dirty_buffers = 6000 or args["maximum_number_of_dirty_buffers"]
 filename = location_of_db + "/virtuoso.ini"
@@ -51,7 +51,7 @@ DatabaseFile			= %s/virtuoso-temp.db
 TransactionFile			= %s/virtuoso-temp.trx
 MaxCheckpointRemap		= 2000
 Striping			= 0
-""" % (location_of_db, location_of_db, \
+""" % (location_of_db, location_of_db,\
 location_of_db, location_of_db, location_of_db, \
 location_of_db, location_of_db)
 
@@ -76,7 +76,7 @@ MaxStaticCursorRows		= 5000
 CheckpointAuditTrail		= 0
 AllowOSCalls			= 0
 SchedulerInterval		= 10
-DirsAllowed			= %s
+DirsAllowed			= /rdf_data
 ThreadCleanupInterval		= 0
 ThreadThreshold			= 10
 ResourcesCleanupInterval	= 0
@@ -99,7 +99,7 @@ AsyncQueueMaxThreads 	 	= 10
 NumberOfBuffers          = %s
 MaxDirtyBuffers          = %s
 
-""" % (port, dirs_allowed, num_of_buffers, max_dirty_buffers)
+""" % (port, num_of_buffers, max_dirty_buffers)
 
 other_configs = """
 [HTTPServer]
@@ -263,8 +263,8 @@ delete from DB.DBA.load_list;
 -- see http://www.openlinksw.com/dataspace/dav/wiki/Main/VirtBulkRDFLoader
 select 'Loading data...';
 --      <folder with data>  <pattern>    <default graph if no graph file specified>
-ld_dir ('%s', '*.ttl', 'http://test.org');
-""" % (args["data_directory"])
+ld_dir ('/rdf_data', '*.nt', 'http://test.org');
+"""
 prepare_filehandler = open(prepare_filename, "w")
 prepare_filehandler.write(prepare_sql_file)
 prepare_filehandler.close()
