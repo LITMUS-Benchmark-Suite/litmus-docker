@@ -47,7 +47,7 @@ query_extension_maps = { \
     'g_neo4j' : '/neo4j_*.groovy', \
     'g_tinker' : '/tinker_*.groovy', \
     'r_rdf3x' : '/*.sparql', \
-    'r_jena' : '/*.sparql', \
+    'r_jena' : '/*.sparqla', \
     'r_virtuoso' : '/*.sparql'
     }
 
@@ -284,44 +284,52 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
     if prelogue:
-        subprocess.call(prelogue, shell = True)
+        for each in prelogue:
+            subprocess.call(each, shell = True)
     print("*****", perf1, "*****")
     subprocess.call(perf1, shell = True)
     if epilogue:
-        subprocess.call(epilogue, shell = True)
+        for each in epilogue:
+            subprocess.call(each, shell = True)
     print("FInished perf1")
 
     sys.stdout.flush()
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
     if prelogue:
-        subprocess.call(prelogue, shell = True)
+        for each in prelogue:
+            subprocess.call(each, shell = True)
     print("*****", perf2, "*****")
     subprocess.call(perf2, shell = True)
     if epilogue:
-        subprocess.call(epilogue, shell = True)
+        for each in epilogue:
+            subprocess.call(each, shell = True)
     print("FInished perf2")
     sys.stdout.flush()
 
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
     if prelogue:
-        subprocess.call(prelogue, shell = True)
+        for each in prelogue:
+            subprocess.call(each, shell = True)
     print("*****", perf3, "*****")
     subprocess.call(perf3, shell = True)
     if epilogue:
-        subprocess.call(epilogue, shell = True)
+        for each in epilogue:
+            subprocess.call(each, shell = True)
     print("Finished Perf3")
     sys.stdout.flush()
 
     if clear_cache:
         subprocess.call(clear_cache_command, shell = True)
     if prelogue:
-        subprocess.call(prelogue, shell = True)
+        for each in prelogue:
+            subprocess.call(each, shell = True)
     print("*****", perf4, "*****")
     subprocess.call(perf4, shell = True)
     if epilogue:
-        subprocess.call(epilogue, shell = True)
+        for each in epilogue:
+            subprocess.call(each, shell = True)
     sys.stdout.flush()
 
 def g_sparksee_with_perf(runs, xmlFile):
@@ -579,7 +587,7 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile):
         subprocess.call("echo %s >> /var/log/rdf3x/query_cold_logs.log" % (name_of_file), shell = True)
         for each in range(runs):
             query_command = "/scripts/rdf3x/RDF3xExecuteColdCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_cold_logs.log %s" % (each_command)
-            run_perf(query_command, "/var/log/rdf3x/cold_query_log_perf.log.%s" %(name_of_file), clear_cache = True)
+            run_perf(query_command, "/var/log/rdf3x/query_cold_logs_perf.log.%s" %(name_of_file), clear_cache = True)
     
     m = glob.glob(queryLocations + "/*.sparql")
     for each_command in m:
@@ -587,7 +595,7 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile):
         subprocess.call("echo %s >> /var/log/rdf3x/query_hot_logs.log" % (name_of_file), shell = True)
         for each in range(runs):
             query_command = "/scripts/rdf3x/RDF3xExecuteHotCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_hot_logs.log %s" % (each_command)
-            run_perf(query_command, "/var/log/rdf3x/hot_query_log_perf.log.%s" %(name_of_file))
+            run_perf(query_command, "/var/log/rdf3x/query_hot_logs_perf.log.%s" %(name_of_file))
 
 
 def g_orient_with_perf(runs, xmlFile):
@@ -831,7 +839,7 @@ def r_jena_with_perf(runs, queryLocation, dataFile):
     logger.info("Running the scripts for the Jena DMS with Perf")
     logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocation, dataFile))
 
-    
+    subprocess.call("/scripts/jena/jena_settings.sh", shell = True)
     logger.info("Running the loading scripts for the Jena DMS")
     # Running the loads
     for each in range(runs):
@@ -933,16 +941,21 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation):
     
     logger.info("Starting the virtuoso server")
     # Starting the server
-    os.system("cd /scripts/virtuoso && /usr/local/virtuoso-opensource/bin/virtuoso-t -f /scripts/virtuoso/ &")
-    time.sleep(30)
+    #os.system("cd /scripts/virtuoso && /usr/local/virtuoso-opensource/bin/virtuoso-t -f /scripts/virtuoso/ &")
+    #time.sleep(30)
 
     logger.info("Running the loading scripts for the Virtuoso DMS")
     for each in range(runs):
         # Running the loads
-        prelogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"
+        prelogue = ["cd /scripts/virtuoso && /usr/local/virtuoso-opensource/bin/virtuoso-t -f /scripts/virtuoso/ &", "sleep 30", "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"]
         command = "/scripts/virtuoso/virtuoso_load_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/load_logs.log"
-        epilogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/clear.sql> /dev/null 2>> /dev/null;"
+        epilogue = ["/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/clear.sql> /dev/null 2>> /dev/null;", "killall 9 virtuoso-t", "sleep 10", "rm /scripts/virtuoso/virtuoso.db /scripts/virtuoso/virtuoso.log /scripts/virtuoso/virtuoso.lck /scripts/virtuoso/virtuoso.trx /scripts/virtuoso/virtuoso.pxa /scripts/virtuoso/virtuoso-temp.db /scripts/virtuoso/virtuoso-temp.trx"] 
         run_perf(command, "/var/log/virtuoso/load_log_perf.log", clear_cache = True, prelogue = prelogue, epilogue = epilogue)
+        #command = "killall 9 virtuoso-t"
+        #subprocess.call(command, shell = True)
+        #time.sleep(10)
+        #command = "rm /scripts/virtuoso/virtuoso.db /scripts/virtuoso/virtuoso.log /scripts/virtuoso/virtuoso.lck /scripts/virtuoso/virtuoso.trx /scripts/virtuoso/virtuoso.pxa /scripts/virtuoso/virtuoso-temp.db /scripts/virtuoso/virtuoso-temp.trx"
+        #subprocess.call(command, shell = True)        
 
     prelogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"
     command = "/scripts/virtuoso/virtuoso_load.sh /usr/local/virtuoso-opensource/bin/isql /dev/null"
@@ -1500,6 +1513,8 @@ def process_perf_file(file_name, csv_list, dms, action, query_number):
                 value = value.replace(",", "")
                 value = float(value)
                 csv_list_2.append([key, str(value)])
+
+        
     l = [dms, action, query_number, str(run_id)]    
     for each in csv_list_2:
         l.append(each[1])
@@ -1730,30 +1745,36 @@ if __name__ == "__main__":
         name_of_graph = glob.glob(args['graph_datafile'] + "/*")
         name_of_graph = name_of_graph[0]
 #        g_sparksee(total_runs, name_of_graph)
-        g_neo4j_with_perf(total_runs, name_of_graph)
+#        g_neo4j_with_perf(total_runs, name_of_graph)
 #        g_neo4j(total_runs, name_of_graph)
         print("Called the function")
         print("Please run")        
-#        g_sparksee_with_perf(1, name_of_graph)
-#        g_tinker_with_perf(1, name_of_graph)
-        directory_maps = {'g_neo4j' : 'neo4j'}
+        g_sparksee_with_perf(3, name_of_graph)
+        g_tinker_with_perf(3, name_of_graph)
+        directory_maps = {'g_tinker' : 'tinker', 'g_sparksee' : 'sparksee'}
         generate_perf_csv_for_all_dms("g_", "temp_graph.csv")
-#        generate_perf_csv_for_all_graphs("temp.csv")
-#        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
+        graph_based = ["g_tinker", "g_sparksee"]
+        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
     if args["rdf"]:
         generate_rdf_queries(args['rdf_queries'])
-        name_of_graph = glob.glob(args['rdf_datafile'] + "/*.ttl")
+        name_of_graph = glob.glob(args['rdf_datafile'] + "/*.nt")
         name_of_graph = name_of_graph[0]
 
 #        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
-        directory_maps = {'r_jena' : 'jena'}
+        directory_maps = {'r_virtuoso' : 'virtuoso'}
 
-        r_jena_with_perf(1, '/jena_queries', name_of_graph)
+        rdf_based = ['r_virtuoso']
+        #r_jena_with_perf(3, '/jena_queries', name_of_graph)
+        #r_rdf3x_with_perf(3, args['rdf_queries'], name_of_graph)
+        r_virtuoso_with_perf(1, '/virtuosos_queries', name_of_graph)
+        
         generate_perf_csv_for_all_dms("r_", "temp_rdf.csv")
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
 #        r_jena(total_runs, "/jena_queries", name_of_graph)
-        #create_csv_from_logs("rdf.load.logs", "rdf.query.logs", rdf_based, False)
+#        create_csv_from_logs("rdf.load.logs", "rdf.query.logs", rdf_based, False)
+
+
 
 
