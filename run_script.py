@@ -1586,12 +1586,24 @@ def process_all_perfs_dms(perf_directory, query_directory, query_search_string, 
     print(dic_load_headers)
     return (dic_load_headers, dic_load, dic_hot_queries, dic_cold_queries)
 
-def generate_perf_csv_for_all_dms(type_of_dms, name_of_file):
+def generate_perf_csv_for_all_dms(type_of_dms, name_of_file, process_files = ["load", "hot_query", "cold_query"]):
     """This function process all the perf log files for the given types of DMS and stores
         it in a single csv file.
     type_of_dms : g_ for graph based DMS, and r_ in case of RDF based DMS.
     name_of_file : The name of the CSV file.
+    process_files : This is a list which tells us what files to process.
     """    
+
+    load_flag = False
+    hot_query_flag = False
+    cold_query_flag = False
+    
+    if "load" in process_files:
+        load_flag = True
+    if "hot_query" in process_files:
+        hot_query_flag = True
+    if "cold_query" in process_files:
+        cold_query_flag = True
 
     f = open(name_of_file, "w")
     dic_all = {}
@@ -1618,43 +1630,47 @@ def generate_perf_csv_for_all_dms(type_of_dms, name_of_file):
         f.write(",")
     f.write("\n")
 
+    
     for each in dic_all:
         m = dic_all[each][1:]
-        all_loads = m[0]
-        for i in range(len(all_loads['1'])):
-            f.write(",".join(all_loads['1'][i]))
-            f.write(",")
-            f.write(",".join(all_loads['2'][i][4:]))
-            f.write(",")
-            f.write(",".join(all_loads['3'][i][4:]))
-            f.write(",")
-            f.write(",".join(all_loads['4'][i][4:]))
-            f.write("\n")
+        if load_flag:
+            all_loads = m[0]
+            for i in range(len(all_loads['1'])):
+                f.write(",".join(all_loads['1'][i]))
+                f.write(",")
+                f.write(",".join(all_loads['2'][i][4:]))
+                f.write(",")
+                f.write(",".join(all_loads['3'][i][4:]))
+                f.write(",")
+                f.write(",".join(all_loads['4'][i][4:]))
+                f.write("\n")
         
-        all_hot = m[1]
-        for each in all_hot:
-            for i in range(len(all_hot[each]['1'])):
-                print(all_hot[each])        
-                f.write(",".join(all_hot[each]['1'][i]))
-                f.write(",")
-                f.write(",".join(all_hot[each]['2'][i][4:]))
-                f.write(",")
-                f.write(",".join(all_hot[each]['3'][i][4:]))
-                f.write(",")
-                f.write(",".join(all_hot[each]['4'][i][4:]))
-                f.write("\n")
+        if hot_query_flag:
+            all_hot = m[1]
+            for each in all_hot:
+                for i in range(len(all_hot[each]['1'])):
+                    print(all_hot[each])        
+                    f.write(",".join(all_hot[each]['1'][i]))
+                    f.write(",")
+                    f.write(",".join(all_hot[each]['2'][i][4:]))
+                    f.write(",")
+                    f.write(",".join(all_hot[each]['3'][i][4:]))
+                    f.write(",")
+                    f.write(",".join(all_hot[each]['4'][i][4:]))
+                    f.write("\n")
 
-        all_cold = m[2]
-        for each in all_cold:
-            for i in range(len(all_cold[each]['1'])):        
-                f.write(",".join(all_cold[each]['1'][i]))
-                f.write(",")
-                f.write(",".join(all_cold[each]['2'][i][4:]))
-                f.write(",")
-                f.write(",".join(all_cold[each]['3'][i][4:]))
-                f.write(",")
-                f.write(",".join(all_cold[each]['4'][i][4:]))
-                f.write("\n")
+        if cold_query_flag:
+            all_cold = m[2]
+            for each in all_cold:
+                for i in range(len(all_cold[each]['1'])):        
+                    f.write(",".join(all_cold[each]['1'][i]))
+                    f.write(",")
+                    f.write(",".join(all_cold[each]['2'][i][4:]))
+                    f.write(",")
+                    f.write(",".join(all_cold[each]['3'][i][4:]))
+                    f.write(",")
+                    f.write(",".join(all_cold[each]['4'][i][4:]))
+                    f.write("\n")
 
     f.close()                       
 
@@ -1768,7 +1784,7 @@ if __name__ == "__main__":
         #r_rdf3x_with_perf(3, args['rdf_queries'], name_of_graph)
         r_virtuoso_with_perf(1, '/virtuosos_queries', name_of_graph)
         
-        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv")
+        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["load"])
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
