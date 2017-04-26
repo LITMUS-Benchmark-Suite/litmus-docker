@@ -53,7 +53,16 @@ RUN git clone https://github.com/openlink/virtuoso-opensource.git \
         && make && make install 
 
 
+RUN apt-get install -y time
 
+RUN apt-get install -y linux-tools-4.4.0-53-generic
+
+RUN apt-get install -y software-properties-common
+
+#RUN add-apt-repository -y ppa:webupd8team/java 
+#RUN apt-get update 
+#RUN apt-get i-y nstall oracle-java8-installer
+#RUN apt-get install oracle-java8-set-default
 
 # create directory for gh-rdf3x logs
 RUN mkdir /var/log/rdf3x
@@ -141,13 +150,15 @@ ADD ./sparql_query/* /sparql_query/
 RUN mkdir /gremlin_query
 ADD ./gremlin_query/* /gremlin_query/
 
-RUN apt-get install -y time
+# create folder for gremlin query for perf
+RUN mkdir /gremlin_query_perf
 
-RUN apt-get install -y linux-tools-4.4.0-53-generic
 # copying all the scripts
 ADD ./hello_world.py ./
 ADD ./run_script.py ./
 
 
-CMD python3 run_script.py -g -n 2 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && cat /var/log/load_log_perf.log*
+CMD python3 run_script.py -g -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && cat temp_graph.csv graph.load.logs graph.query.logs
+#&& cat temp_rdf.csv && python3 plot_script.py && ls -lh /plots/* && ls -lh /tables/*
 #CMD ls /apache-jena-3.2.0/bin/*
+#CMD touch /var/log/tinker/load_log_perf.log.1 && perf stat -o /var/log/tinker/load_log_perf.log.1 --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a /scripts/tinker/TinkerLoadPerf.sh /tmp/tinker.gdb /graph_data/graph-example-1.xml /var/log/tinker/load_logs.log && cat /var/log/tinker/load_log_perf.log.1
