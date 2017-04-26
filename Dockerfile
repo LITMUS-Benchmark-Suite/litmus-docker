@@ -55,7 +55,7 @@ RUN git clone https://github.com/openlink/virtuoso-opensource.git \
 
 RUN apt-get install -y time
 
-RUN apt-get install -y linux-tools-4.4.0-53-generic
+RUN apt-get update linux-tools-common linux-tools-`uname -r`
 
 RUN apt-get install -y software-properties-common
 
@@ -155,7 +155,7 @@ RUN mkdir /gremlin_query_perf
 
 # copying all the scripts
 ADD ./hello_world.py ./
-ADD ./run_script.py ./
+#ADD ./run_script.py ./
 
 
 CMD python3 run_script.py -g -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && cat temp_graph.csv graph.load.logs graph.query.logs
