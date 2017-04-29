@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:14.04
 
 MAINTAINER Yashwant Keswani <yashwant.keswani@gmail.com>
 
@@ -9,11 +9,20 @@ RUN apt-get update && apt-get install -y \
             gcc-4.7 \
             build-essential g++ \
             python3 \
-            default-jre \
-            default-jdk \
+            software-properties-common \
+#            default-jre \
+#            default-jdk \
             unzip \
             wget \
      && apt-get clean
+
+
+RUN add-apt-repository ppa:openjdk-r/ppa
+RUN apt-get update
+RUN apt-get install -y openjdk-8-jdk
+
+#ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
+
 
 # Install gh-rdf3x and clean up
 RUN git clone https://github.com/gh-rdf3x/gh-rdf3x.git \
@@ -38,7 +47,6 @@ RUN mv gremlin-groovy-2.6.0 gremlin-groovy
 RUN wget https://orientdb.com/download.php?file=orientdb-community-2.1.3.tar.gz
 RUN tar -xf download.php?file=orientdb-community-2.1.3.tar.gz -C /
 RUN mv /orientdb-community-2.1.3 /orientdb
-
 
 # Install Apache Jena
 RUN wget http://mirror.fibergrid.in/apache/jena/binaries/apache-jena-3.2.0.zip
@@ -158,5 +166,9 @@ RUN mkdir /gremlin_query_perf
 #ADD ./hello_world.py ./
 ADD ./run_script.py ./
 
+#ADD ./orient_gremlin.sh /orientdb/bin/gremlin.sh
+#ADD ./gremlin_gremlin.sh /gremlin_groovy/bin/gremlin.sh
 
+#RUN chmod 777 /orientdb/bin/gremlin.sh
 CMD python3 run_script.py -r -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && cat /var/log/jena/load_logs.log
+#CMD ls /usr/lib/jvm/*
