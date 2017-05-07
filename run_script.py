@@ -1629,6 +1629,8 @@ def process_all_perfs_dms(perf_directory, query_directory, query_search_string, 
     print("\n"*5)    
     print("*********", query_directory +  query_search_string , "*************")    
     print("\n"*5)    
+    dic_hq_headers = None
+    dic_cq_headers = None
     for each in all_queries:
         name_of_file = None
         if graph_based:
@@ -1638,13 +1640,22 @@ def process_all_perfs_dms(perf_directory, query_directory, query_search_string, 
         print("*********", name_of_file, "*************")
         all_files = glob.glob(perf_directory + "query_hot_logs_perf.log.%s*" % (name_of_file))
         l,m = process_perf_group(all_files, "query_hot", name_of_file)
+        dic_hq_headers = l
         dic_hot_queries[name_of_file] = m
         all_files = glob.glob(perf_directory + "query_cold_logs_perf.log.%s*" % (name_of_file))
         l,m = process_perf_group(all_files, "query_cold", name_of_file)
+        dic_cq_headers = l
         dic_cold_queries[name_of_file] = m
 
     print(dic_load_headers)
-    return (dic_load_headers, dic_load, dic_hot_queries, dic_cold_queries)
+    if len(dic_load_headers)!=0:
+        return (dic_load_headers, dic_load, dic_hot_queries, dic_cold_queries)
+    elif dic_hq_headers is not None:
+        return (dic_hq_headers, dic_load, dic_hot_queries, dic_cold_queries)
+    else:
+        return (dic_cq_headers, dic_load, dic_hot_queries, dic_cold_queries)
+
+
 
 def generate_perf_csv_for_all_dms(type_of_dms, name_of_file, process_files = ["load", "hot_query", "cold_query"]):
     """This function process all the perf log files for the given types of DMS and stores
@@ -1840,6 +1851,7 @@ if __name__ == "__main__":
         name_of_graph = name_of_graph[0]
         print(name_of_graph)
         directory_maps = {'r_virtuoso' : 'virtuoso', 'r_jena' : 'jena', 'r_rdf3x':'rdf3x'}
+        directory_maps = {'r_virtuoso' : 'virtuoso'}
 
 #        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
 
@@ -1848,7 +1860,7 @@ if __name__ == "__main__":
 #        r_rdf3x_with_perf(10, args['rdf_queries'], name_of_graph, actions = ["load"])
         r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
         
-#        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["load"])
+        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["hot_query"])
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
