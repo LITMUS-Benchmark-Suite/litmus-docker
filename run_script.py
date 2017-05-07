@@ -1083,8 +1083,12 @@ def generate_rdf_queries(rdf_query_location):
     for each in all_sparql:
         new_file = open("/virtuoso_queries/" + get_name_of_file(each), "w")
         original_file = open(each, "r").read()
-        new_file.write("SPARQL;\n")
-        new_file.write(original_file)
+        new_file.write("SPARQL ")
+        components = original_file.split("where")
+        virtuoso_query = components[0] + " from <http://test.org> where " + components[1]
+        virtuoso_query.strip().strip(";") 
+        virtuoso_query = virtuoso_query + ";"
+        new_file.write(virtuoso_query)
         new_file.close()
         apache_file = open("/jena_queries/" + get_name_of_file(each), "w")
         apache_file.write(original_file)
