@@ -1012,8 +1012,11 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation, actions = ["load
 
     if query_hot_flag or query_cold_flag:
         prelogue = "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"
-        command = "/scripts/virtuoso/virtuoso_load.sh /usr/local/virtuoso-opensource/bin/isql /dev/null"
-        subprocess.call(prelogue, shell = True)
+        prelogue = ["cd /scripts/virtuoso && /usr/local/virtuoso-opensource/bin/virtuoso-t -f /scripts/virtuoso/ &", "sleep 30", "/usr/local/virtuoso-opensource/bin/isql 1111 dba dba /scripts/virtuoso/prepare.sql> /dev/null 2>> /dev/null;"]
+
+        command = "/scripts/virtuoso/virtuoso_query_load.sh /usr/local/virtuoso-opensource/bin/isql"
+        for each in prelogue:
+            subprocess.call(each, shell = True)
         subprocess.call(command, shell = True)
 
     if query_hot_flag:
@@ -1840,12 +1843,12 @@ if __name__ == "__main__":
 
 #        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
 
-        rdf_based = ['r_virtuoso', 'r_rdf3x']
-        r_jena_with_perf(10, '/jena_queries', name_of_graph, actions=["load"])
-        r_rdf3x_with_perf(10, args['rdf_queries'], name_of_graph, actions = ["load"])
-        r_virtuoso_with_perf(10, '/virtuosos_queries', name_of_graph, actions = ["load"])
+#        rdf_based = ['r_virtuoso', 'r_rdf3x']
+#        r_jena_with_perf(10, '/jena_queries', name_of_graph, actions=["load"])
+#        r_rdf3x_with_perf(10, args['rdf_queries'], name_of_graph, actions = ["load"])
+        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
         
-        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["load"])
+#        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["load"])
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
