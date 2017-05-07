@@ -47,7 +47,7 @@ query_extension_maps = { \
     'g_neo4j' : '/neo4j_*.groovy', \
     'g_tinker' : '/tinker_*.groovy', \
     'r_rdf3x' : '/*.sparql', \
-    'r_jena' : '/*.sparqla', \
+    'r_jena' : '/*.sparql', \
     'r_virtuoso' : '/*.sparql'
     }
 
@@ -897,7 +897,7 @@ def r_jena_with_perf(runs, queryLocation, dataFile, actions = ["load", "query_ho
 
 
     if query_hot_flag:
-        command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_hot %s /dev/null" % (dataFile)
+        command = "/scripts/jena/JenaTDBLoadQuery.sh /tmp jena_graph_hot %s /dev/null" % (dataFile)
         subprocess.call(command, shell = True)    
         logger.info("Running the queries for the Jena DMS on hot cache")
         m = glob.glob(queryLocation + "/*.sparql")
@@ -911,7 +911,7 @@ def r_jena_with_perf(runs, queryLocation, dataFile, actions = ["load", "query_ho
     subprocess.call("rm -r /tmp/*", shell = True)
     
     if query_cold_flag:
-        command = "/scripts/jena/JenaTDBLoadPerf.sh /tmp jena_graph_cold %s /dev/null" % (dataFile)
+        command = "/scripts/jena/JenaTDBLoadQuery.sh /tmp jena_graph_cold %s /dev/null" % (dataFile)
         subprocess.call(command, shell = True)    
 
         logger.info("Running the queries for the Jena DMS on cold cache")
@@ -1851,14 +1851,14 @@ if __name__ == "__main__":
         name_of_graph = name_of_graph[0]
         print(name_of_graph)
         directory_maps = {'r_virtuoso' : 'virtuoso', 'r_jena' : 'jena', 'r_rdf3x':'rdf3x'}
-        directory_maps = {'r_virtuoso' : 'virtuoso'}
+        directory_maps = {'r_jena' : 'jena'}
 
 #        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
 
 #        rdf_based = ['r_virtuoso', 'r_rdf3x']
-#        r_jena_with_perf(10, '/jena_queries', name_of_graph, actions=["load"])
+        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["query_hot"])
 #        r_rdf3x_with_perf(10, args['rdf_queries'], name_of_graph, actions = ["load"])
-        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
+#        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
         
         generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["hot_query"])
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
