@@ -49,7 +49,7 @@ RUN tar -xf download.php?file=orientdb-community-2.1.3.tar.gz -C /
 RUN mv /orientdb-community-2.1.3 /orientdb
 
 # Install Apache Jena
-RUN wget http://mirror.fibergrid.in/apache/jena/binaries/apache-jena-3.2.0.zip
+RUN wget https://archive.apache.org/dist/jena/binaries/apache-jena-3.2.0.zip
 RUN unzip apache-jena-3.2.0.zip
 
 #Installing open link virtuoso
@@ -64,7 +64,7 @@ RUN git clone https://github.com/openlink/virtuoso-opensource.git \
 RUN apt-get install -y time
 
 RUN apt-get update 
-RUN apt-get install -y linux-tools-common linux-tools-`uname -r`
+RUN apt-get install -y linux-tools-common linux-tools-4.4.0-53-generic linux-tools-`uname -r`
 
 RUN apt-get install -y software-properties-common
 
@@ -73,6 +73,7 @@ RUN apt-get install -y software-properties-common
 #RUN apt-get i-y nstall oracle-java8-installer
 #RUN apt-get install oracle-java8-set-default
 
+RUN apt-get install -y default-jdk
 # create directory for gh-rdf3x logs
 RUN mkdir /var/log/rdf3x
 
@@ -170,5 +171,7 @@ ADD ./run_script.py ./
 #ADD ./gremlin_gremlin.sh /gremlin_groovy/bin/gremlin.sh
 
 #RUN chmod 777 /orientdb/bin/gremlin.sh
-CMD python3 run_script.py -r -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && cat /var/log/jena/load_logs.log
+CMD python3 run_script.py -a -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && java -version
 #CMD ls /usr/lib/jvm/*
+#CMD java -version
+#CMD update-java-alternatives --list

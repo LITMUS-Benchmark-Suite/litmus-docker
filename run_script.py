@@ -51,6 +51,13 @@ query_extension_maps = { \
     'r_virtuoso' : '/*.sparql'
     }
 
+
+def set_java_path(java8 = True):
+    if java8:
+        subprocess.call("sudo update-java-alternatives --set /usr/lib/jvm/java-1.8.0-openjdk-amd64", shell = True)
+    else:
+        subprocess.call("sudo update-java-alternatives --set /usr/lib/jvm/java-1.7.0-openjdk-amd64", shell = True)
+
 def gather_data_graph_dms(dms):
     #Gather the data and put it in a csv format
     """This function is used to process the log files for a rdf based dms and 
@@ -1836,8 +1843,11 @@ if __name__ == "__main__":
         print("Called the function")
         print("Please run")        
 #        g_sparksee_with_perf(10, name_of_graph, actions = ["load"])
-#        g_tinker_with_perf(10, name_of_graph, actions = ["load"])
-        g_neo4j_with_perf(10, name_of_graph, actions = ["load"])
+        set_java_path(java8 = False)
+        g_tinker_with_perf(1, name_of_graph, actions = ["load"])
+        set_java_path(java8 = True)
+
+        g_neo4j_with_perf(1, name_of_graph, actions = ["load"])
         #g_orient_with_perf(10, name_of_graph, actions = ["load"])
         directory_maps = {'g_tinker':'tinker', 'g_neo4j':'neo4j'}
 
@@ -1846,6 +1856,7 @@ if __name__ == "__main__":
  #       graph_based = ["g_tinker", "g_sparksee"]
 #        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
     if args["rdf"]:
+        set_java_path(java8 = True)
         generate_rdf_queries(args['rdf_queries'])
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.nt")
         name_of_graph = name_of_graph[0]
@@ -1856,11 +1867,11 @@ if __name__ == "__main__":
 #        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
 
 #        rdf_based = ['r_virtuoso', 'r_rdf3x']
-        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["query_hot"])
+        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["load"])
 #        r_rdf3x_with_perf(10, args['rdf_queries'], name_of_graph, actions = ["load"])
 #        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
         
-        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["hot_query"])
+#        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["hot_query"])
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
