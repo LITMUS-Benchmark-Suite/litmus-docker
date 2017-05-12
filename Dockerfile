@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
             gcc-4.7 \
             build-essential g++ \
             python3 \
+	    apt-transport-https \
             software-properties-common \
 #            default-jre \
 #            default-jdk \
