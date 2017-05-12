@@ -25,6 +25,9 @@ RUN apt-get install -y openjdk-8-jdk
 
 #ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
 
+RUN apt-get -y update;
+RUN apt-get -y upgrade; 
+RUN apt-get install -y linux-tools-`uname -r`
 
 # Install gh-rdf3x and clean up
 RUN git clone https://github.com/gh-rdf3x/gh-rdf3x.git \
@@ -64,10 +67,6 @@ RUN git clone https://github.com/openlink/virtuoso-opensource.git \
 
 
 RUN apt-get install -y time
-
-RUN apt-get -y update;
-RUN apt-get -y upgrade; 
-RUN apt-get install -y linux-tools-`uname -r`
 
 RUN apt-get install -y software-properties-common
 
