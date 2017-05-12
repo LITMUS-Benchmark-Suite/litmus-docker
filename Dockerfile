@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
             wget \
      && apt-get clean
 
+RUN apt-get -y update;
+RUN apt-get -y upgrade; 
+RUN apt-get install -y linux-tools-common linux-tools-generic linux-tools-`uname -r`
 
 RUN add-apt-repository ppa:openjdk-r/ppa
 RUN apt-get update
@@ -25,9 +28,6 @@ RUN apt-get install -y openjdk-8-jdk
 
 #ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
 
-RUN apt-get -y update;
-RUN apt-get -y upgrade; 
-RUN apt-get install -y linux-tools-`uname -r`
 
 # Install gh-rdf3x and clean up
 RUN git clone https://github.com/gh-rdf3x/gh-rdf3x.git \
