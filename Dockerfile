@@ -65,8 +65,9 @@ RUN git clone https://github.com/openlink/virtuoso-opensource.git \
 
 RUN apt-get install -y time
 
-RUN apt-get update 
-RUN apt-get install -y linux-tools-common linux-tools-4.4.0-53-generic linux-tools-`uname -r`
+RUN apt-get -y update;
+RUN apt-get -y upgrade; 
+RUN apt-get install -y linux-tools-`uname -r`
 
 RUN apt-get install -y software-properties-common
 
