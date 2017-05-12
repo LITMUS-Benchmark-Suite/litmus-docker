@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 LABEL maintainer1 "yashwant.keswani@gmail.com"
 LABEL maintainer2 "harsh9t@gmail.com"
