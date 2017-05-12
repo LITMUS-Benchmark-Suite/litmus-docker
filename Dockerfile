@@ -1,6 +1,7 @@
 FROM ubuntu:14.04
 
-MAINTAINER Yashwant Keswani <yashwant.keswani@gmail.com>
+LABEL maintainer1 "yashwant.keswani@gmail.com"
+LABEL maintainer2 "harsh9t@gmail.com"
 
 # Install packages.
 RUN apt-get update && apt-get install -y \
