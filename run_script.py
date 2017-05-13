@@ -13,7 +13,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 
 graph_based = ['g_sparksee', 'g_orient', 'g_neo4j', 'g_tinker' ]
 
-rdf_based = ['r_rdf3x', 'r_monet', 'r_jena', 'r_arq', 'r_virtuoso' ]
+rdf_based = ['r_rdf3x', 'r_monet', 'r_jena', 'r_arq', 'r_virtuoso', 'r_4store' ]
 
 
 #maps the DMS with the directories of their log files.
@@ -26,7 +26,8 @@ directory_maps = { \
     'r_monet' : 'monet', \
     'r_jena' : 'jena', \
     'r_arq' : 'arq', \
-    'r_virtuoso' : 'virtuoso'
+    'r_virtuoso' : 'virtuoso', \
+    'r_4store' : '4store'
     }
 
 #maps the DMS with the directories where the queries exist.
@@ -37,7 +38,8 @@ query_directory_maps = { \
     'g_tinker' : '/gremlin_query_perf', \
     'r_rdf3x' : '/sparql_query', \
     'r_jena' : '/jena_queries', \
-    'r_virtuoso' : '/virtuoso_queries'
+    'r_virtuoso' : '/virtuoso_queries', \
+    'r_4store' : '/4store_queries'
     }
 
 #maps the DMS with the extension of their queries.
@@ -48,7 +50,8 @@ query_extension_maps = { \
     'g_tinker' : '/tinker_*.groovy', \
     'r_rdf3x' : '/*.sparql', \
     'r_jena' : '/*.sparql', \
-    'r_virtuoso' : '/*.sparql'
+    'r_virtuoso' : '/*.sparql', \
+    'r_4store' : '/*.sparql'
     }
 
 
@@ -631,6 +634,54 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile, actions = ["load", "query_
                 query_command = "/scripts/rdf3x/RDF3xExecuteHotCachePerf.sh /tmp rdf3x_graph /var/log/rdf3x/query_hot_logs.log %s" % (each_command)
                 run_perf(query_command, "/var/log/rdf3x/query_hot_logs_perf.log.%s" %(name_of_file))
 
+
+def r_4store_with_perf(runs, queryLocations, dataFile, actions = ["load", "query_hot", "query_cold"]):
+    """This function is used to run the 4store DMS with perf tool.
+    runs : THe number of runs
+    queryLocations : The directories which has the SPARQL queries for RDF3x
+    dataFile : The location of the datafile.
+    """
+    logger.info("*"*80)
+    logger.info("Running the scripts for the 4store DMS with perf")
+    logger.info("Runs = %s, queryLocations = %s, dataFile = %s" % (runs, queryLocations, dataFile))
+
+    load_flag = "load" in actions
+    query_hot_flag = "query_hot" in actions
+    query_cold_flag = "query_cold" in actions
+
+    #Loading the database
+    if load_flag:
+        for each in range(runs):
+            prelogue = ["/scripts/4store/4store_load_and_start.sh hello%s" % (str(each))]
+            load_command = "/scripts/4store/4store_import.sh hello%s %s /var/log/4store/load_logs.log" % (str(each), dataFile) 
+            epilogue = ["/scripts/4store/4store_stop.sh hello%s" %(str(each))]
+            run_perf(load_command, "/var/log/4store/load_log_perf.log", prelogue = prelogue, epilogue = epilogue, clear_cache = True)
+
+
+    if query_hot_flag or query_cold_flag:
+        prelogue = "/scripts/4store/4store_load_and_start.sh hello"
+        load_command = "/scripts/4store/4store_import.sh hello %s /dev/null" % (dataFile) 
+        subprocess.call(prelogue, shell = True)
+        subprocess.call(load_command, shell = True)
+
+
+    if query_cold_flag:
+        m = glob.glob(queryLocations + "/*.sparql")
+        for each_command in m:
+            name_of_file = each_command.split("/")[-1].split(".")[0]
+            subprocess.call("echo %s >> /var/log/4store/query_cold_logs.log" % (name_of_file), shell = True)
+            for each in range(runs):
+                query_command = "/scripts/4store/4store_query_cold_cache_perf.sh hello %s /var/log/4store/query_cold_logs.log" % (each_command)
+                run_perf(query_command, "/var/log/4store/query_cold_logs_perf.log.%s" %(name_of_file), clear_cache = True)
+    
+    if query_hot_flag:
+        m = glob.glob(queryLocations + "/*.sparql")
+        for each_command in m:
+            name_of_file = each_command.split("/")[-1].split(".")[0]
+            subprocess.call("echo %s >> /var/log/4store/query_hot_logs.log" % (name_of_file), shell = True)
+            for each in range(runs):
+                query_command = "/scripts/4store/4store_query_hot_cache_perf.sh hello %s /var/log/4store/query_hot_logs.log" % (each_command)
+                run_perf(query_command, "/var/log/4store/query_hot_logs_perf.log.%s" %(name_of_file))
 
 def g_orient_with_perf(runs, xmlFile, actions = ["load", "query_hot", "query_cold"]):
     """This function is used to run the Orient DMS with perf tool.
@@ -1909,12 +1960,13 @@ if __name__ == "__main__":
         #r_virtuoso_with_perf(10, "/virtuoso_queries", args['rdf_datafile'], actions = ["load"])
 
 #        rdf_based = ['r_virtuoso', 'r_rdf3x']
-        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["query_hot"])
+#        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["query_hot"])
 #        r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph, actions = ["query_hot"])
-        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
-        clean_virtuoso(actions = ["query_hot"])
-        clean_jena(actions = ["query_hot"])
+#        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
+#        clean_virtuoso(actions = ["query_hot"])
+#        clean_jena(actions = ["query_hot"])
 #        directory_maps = {'r_jena': 'jena', 'r_virtuoso':'virtuoso'}
+        r_4store_with_perf(1, args['rdf_queries'], name_of_graph, actions = ["query_hot", "query_cold", "load"])
         
 #        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["hot_query", "cold_query"])
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)

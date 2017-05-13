@@ -70,6 +70,18 @@ RUN apt-get install -y time
 
 RUN apt-get install -y software-properties-common
 
+RUN apt-get -y update
+
+RUN apt-get install -y libglib2.0-dev libraptor2-dev librasqal3-dev uuid-dev libreadline-dev lib32ncurses5-dev
+RUN wget https://4store.danielknoell.de/download/4store-v1.1.5.tar.gz
+RUN tar -xf 4store-v1.1.5.tar.gz
+RUN cd 4store-v1.1.5 \
+    && ./configure \
+    && make \
+    && make install
+
+
+
 #RUN add-apt-repository -y ppa:webupd8team/java 
 #RUN apt-get update 
 #RUN apt-get i-y nstall oracle-java8-installer
@@ -102,6 +114,9 @@ RUN mkdir /var/log/tinker
 
 # create directory for virtuoso logs
 RUN mkdir /var/log/virtuoso
+
+# create directory for 4store logs
+RUN mkdir /var/log/4store
 
 
 # create directory and add data
@@ -136,6 +151,11 @@ ADD ./ne04j/* /scripts/neo4j/
 #Create directory for jena
 RUN mkdir scripts/jena/
 ADD ./jena/* /scripts/jena/
+
+
+#Create directory for 4store
+RUN mkdir scripts/4store/
+ADD ./4store/* /scripts/4store/
 
 
 
@@ -173,7 +193,7 @@ ADD ./run_script.py ./
 #ADD ./gremlin_gremlin.sh /gremlin_groovy/bin/gremlin.sh
 
 #RUN chmod 777 /orientdb/bin/gremlin.sh
-CMD python3 run_script.py -a -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && java -version
+CMD python3 run_script.py -r -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && java -version
 #CMD ls /usr/lib/jvm/*
 #CMD java -version
 #CMD update-java-alternatives --list
