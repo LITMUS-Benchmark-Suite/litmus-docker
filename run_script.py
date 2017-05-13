@@ -42,7 +42,7 @@ query_directory_maps = { \
 
 #maps the DMS with the extension of their queries.
 query_extension_maps = { \
-    'g_sparksee':'/sparsee_*.groovy', \
+    'g_sparksee':'/sparksee_*.groovy', \
     'g_orient' : '/orient_*.groovy', \
     'g_neo4j' : '/neo4j_*.groovy', \
     'g_tinker' : '/tinker_*.groovy', \
@@ -904,6 +904,7 @@ def r_jena_with_perf(runs, queryLocation, dataFile, actions = ["load", "query_ho
 
 
     if query_hot_flag:
+        epilogue = ["cat /jena_hot_cache | head -n 1 >> /var/log/jena/query_hot_logs.log"]
         command = "/scripts/jena/JenaTDBLoadQuery.sh /tmp jena_graph_hot %s /dev/null" % (dataFile)
         subprocess.call(command, shell = True)    
         logger.info("Running the queries for the Jena DMS on hot cache")
@@ -911,13 +912,16 @@ def r_jena_with_perf(runs, queryLocation, dataFile, actions = ["load", "query_ho
         for each_command in m:
             name_of_file = each_command.split("/")[-1].split(".")[0]
             subprocess.call("echo %s >> /var/log/jena/query_hot_logs.log" % (name_of_file), shell = True)
+            subprocess.call("echo %s >> /var/log/jena/usr_time_query_hot_logs.log" % (name_of_file), shell = True)
             for each in range(runs):
-                command = "/scripts/jena/JenaTDBExecuteHotCachePerf.sh /tmp jena_graph_hot /var/log/jena/query_hot_logs.log %s" % (each_command)
-                run_perf(command, "/var/log/jena/query_hot_logs_perf.log.%s" %(name_of_file))
+                command = "/scripts/jena/JenaTDBExecuteHotCachePerf.sh /tmp jena_graph_hot /var/log/jena/usr_time_query_hot_logs.log %s" % (each_command)
+                run_perf(command, "/var/log/jena/query_hot_logs_perf.log.%s" %(name_of_file), epilogue = epilogue)
 
     subprocess.call("rm -r /tmp/*", shell = True)
     
     if query_cold_flag:
+        epilogue = ["cat /jena_cold_cache | head -n 1 >> /var/log/jena/query_cold_logs.log"]
+
         command = "/scripts/jena/JenaTDBLoadQuery.sh /tmp jena_graph_cold %s /dev/null" % (dataFile)
         subprocess.call(command, shell = True)    
 
@@ -925,10 +929,11 @@ def r_jena_with_perf(runs, queryLocation, dataFile, actions = ["load", "query_ho
         m = glob.glob(queryLocation + "/*.sparql")
         for each_command in m:
             name_of_file = each_command.split("/")[-1].split(".")[0]
+            subprocess.call("echo %s >> /var/log/jena/usr_time_query_cold_logs.log" % (name_of_file), shell = True)
             subprocess.call("echo %s >> /var/log/jena/query_cold_logs.log" % (name_of_file), shell = True)
             for each in range(runs):
-                command = "/scripts/jena/JenaTDBExecuteColdCachePerf.sh /tmp jena_graph_cold /var/log/jena/query_cold_logs.log %s" % (each_command)
-                run_perf(command, "/var/log/jena/query_cold_logs_perf.log.%s" %(name_of_file))
+                command = "/scripts/jena/JenaTDBExecuteColdCachePerf.sh /tmp jena_graph_cold /var/log/jena/usr_time_query_cold_logs.log %s" % (each_command)
+                run_perf(command, "/var/log/jena/query_cold_logs_perf.log.%s" %(name_of_file), epilogue = epilogue)
 
 
 def r_virtuoso(runs, queryLocation, dataFileLocation):
@@ -1028,23 +1033,28 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation, actions = ["load
 
     if query_hot_flag:
         logger.info("Running the queries for the Virtuoso DMS on hot cache")
+        epilogue = ["cat virtuoso_query_hot | tail -n 1 >> /var/log/virtuoso/query_hot_logs.log"]
         m = glob.glob(queryLocation + "/*.sparql")
         for each_command in m:
             name_of_file = each_command.split("/")[-1].split(".")[0]
             subprocess.call("echo %s >> /var/log/virtuoso/query_hot_logs.log" % (name_of_file), shell = True)
+            subprocess.call("echo %s >> /var/log/virtuoso/usr_time_query_hot_logs.log" % (name_of_file), shell = True)
             for each in range(runs):
-                command = "/scripts/virtuoso/virtuoso_execute_hot_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_hot_logs.log %s" % (each_command)
-                run_perf(command, "/var/log/virtuoso/query_hot_logs_perf.log.%s" %(name_of_file))
+                command = "/scripts/virtuoso/virtuoso_execute_hot_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/usr_time_query_hot_logs.log %s" % (each_command)
+                run_perf(command, "/var/log/virtuoso/query_hot_logs_perf.log.%s" %(name_of_file), epilogue = epilogue)
 
     if query_cold_flag:
         logger.info("Running the queries for the Virtuoso DMS on cold cache")
+        epilogue = ["cat virtuoso_query_cold | tail -n 1 >> /var/log/virtuoso/query_cold_logs.log"]
+
         m = glob.glob(queryLocation + "/*.sparql")
         for each_command in m:
             name_of_file = each_command.split("/")[-1].split(".")[0]
+            subprocess.call("echo %s >> /var/log/virtuoso/usr_time_query_cold_logs.log" % (name_of_file), shell = True)
             subprocess.call("echo %s >> /var/log/virtuoso/query_cold_logs.log" % (name_of_file), shell = True)
             for each in range(runs):
-                command = "/scripts/virtuoso/virtuoso_execute_cold_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/query_cold_logs.log %s" % (each_command)
-                run_perf(command, "/var/log/virtuoso/query_cold_logs_perf.log.%s" %(name_of_file), clear_cache = True)
+                command = "/scripts/virtuoso/virtuoso_execute_cold_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/usr_time_query_cold_logs.log %s" % (each_command)
+                run_perf(command, "/var/log/virtuoso/query_cold_logs_perf.log.%s" %(name_of_file), clear_cache = True, epilogue = epilogue)
 
 
 def create_log_files(list_to_benchmark):
@@ -1477,7 +1487,7 @@ s = System.currentTimeMillis();\n"""%(name_of_file));
         orient_filehandler.write('x = new OrientGraph("memory:/orient_perf");\n')
         orient_filehandler.write("println('======Query %s======');\n"%(name_of_file));
         orient_filehandler.write("s = System.currentTimeMillis();\n");
-        orient_filehandler.write(open(each, "r").read().strip("\r\n").strip("\n\r"))
+        orient_filehandler.write(open(each, "r").read())
         orient_filehandler.write('println (System.currentTimeMillis() - s) ;\n')
         orient_filehandler.close()
 
@@ -1785,6 +1795,41 @@ def generate_perf_csv_for_all_graphs(name_of_file):
                 f.write("\n")
     f.close()                       
 
+
+def virtuoso_file_cleaner(path):
+    content = open(path, "r").readlines()
+    f = open(path, "w")
+    for each in content:
+        if "query" in each:
+            f.write(each)
+        else:
+            l = each.split("-- ")[1].strip().split(" ")
+            if "msec" in l[1]:
+                f.write(str(float(l[0])/1000) + "\n")
+    f.close()
+
+def clean_virtuoso(actions = ["query_hot", "query_cold"]):
+    if "query_hot" in actions:
+        virtuoso_file_cleaner("/var/log/virtuoso/query_hot_logs.log")
+    if "query_cold" in actions:
+        virtuoso_file_cleaner("/var/log/virtuoso/query_cold_logs.log")
+
+def jena_file_cleaner(path):
+    content = open(path, "r").readlines()
+    f = open(path, "w")
+    for each in content:
+        if "query" in each:
+            f.write(each)
+        else:
+            f.write(each.split("Time: ")[1].split(" sec")[0] + "\n")
+    f.close()
+
+def clean_jena(actions = ["query_hot", "query_cold"]):
+    if "query_hot" in actions:
+        jena_file_cleaner("/var/log/jena/query_hot_logs.log")
+    if "query_cold" in actions:
+        jena_file_cleaner("/var/log/jena/query_cold_logs.log")
+
 if __name__ == "__main__":
     logger.info("Litmus Benchmark Suite")
     parser = argparse.ArgumentParser(description='The Litmus Benchmark Suite')
@@ -1842,16 +1887,15 @@ if __name__ == "__main__":
 #        g_neo4j(total_runs, name_of_graph)
         print("Called the function")
         print("Please run")        
-#        g_sparksee_with_perf(10, name_of_graph, actions = ["load"])
         set_java_path(java8 = False)
-        g_tinker_with_perf(1, name_of_graph, actions = ["load"])
+#        g_tinker_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
         set_java_path(java8 = True)
-
-        g_neo4j_with_perf(1, name_of_graph, actions = ["load"])
-        #g_orient_with_perf(10, name_of_graph, actions = ["load"])
-        directory_maps = {'g_tinker':'tinker', 'g_neo4j':'neo4j'}
-
-#        generate_perf_csv_for_all_dms("g_", "temp_graph.csv", process_files = ["load"])
+        g_sparksee_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
+#        g_neo4j_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
+        g_orient_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
+        directory_maps = {'g_tinker':'tinker', 'g_neo4j':'neo4j', 'g_sparksee':'sparksee', 'g_orient':'orient'}
+        directory_maps = {'g_sparksee':'sparksee', 'g_orient':'orient'}
+        generate_perf_csv_for_all_dms("g_", "temp_graph.csv", process_files = ["hot_query", "cold_query"])
 
  #       graph_based = ["g_tinker", "g_sparksee"]
 #        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
@@ -1861,17 +1905,18 @@ if __name__ == "__main__":
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.nt")
         name_of_graph = name_of_graph[0]
         print(name_of_graph)
-        directory_maps = {'r_virtuoso' : 'virtuoso', 'r_jena' : 'jena', 'r_rdf3x':'rdf3x'}
-        directory_maps = {'r_jena' : 'jena'}
 
-#        r_virtuoso(total_runs, "/virtuoso_queries", args['rdf_datafile'])
+        #r_virtuoso_with_perf(10, "/virtuoso_queries", args['rdf_datafile'], actions = ["load"])
 
 #        rdf_based = ['r_virtuoso', 'r_rdf3x']
-        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["load"])
-#        r_rdf3x_with_perf(10, args['rdf_queries'], name_of_graph, actions = ["load"])
-#        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
+        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["query_hot"])
+#        r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph, actions = ["query_hot"])
+        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
+        clean_virtuoso(actions = ["query_hot"])
+        clean_jena(actions = ["query_hot"])
+#        directory_maps = {'r_jena': 'jena', 'r_virtuoso':'virtuoso'}
         
-#        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["hot_query"])
+#        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["hot_query", "cold_query"])
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
