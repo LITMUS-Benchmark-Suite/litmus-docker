@@ -584,6 +584,29 @@ def r_rdf3x(runs, queryLocations, dataFile):
     #gather_data_rdf_dms("r_rdf3x")
     logger.info("*"*80)
 
+def return_rdf3x_valid_queries(queryLocation, datafileLocation):
+    """This function returns a list of all the valid queries for rdf3x.
+    queryLocation : The folder which has the SPARQL queries
+    dataFileLocation : The location of the nt file."""
+
+    logger.info("*"*80)
+    logger.info("The function finds the queries which are valid for the RDF3x DMS")
+    
+    valid_query = []
+    l = glob.glob(queryLocation + "/*.sparql")
+    command = "/gh-rdf3x/bin/rdf3xload /tmp/query_check %s" % (datafileLocation)
+    subprocess.call(command, shell = True)
+    for each in l:
+        command = "/gh-rdf3x/bin/rdf3xquery /tmp/query_check %s > temp 2> temp" % (each)
+        subprocess.call(command, shell = True)
+        content = open("temp", "r").read()
+        if "parse error: projection required after select" not in content:
+            valid_query.append(each)
+            logger.info("%s is valid for rdf3x" % (each))
+        else:
+            logger.info("%s is invalid for RDF3x" % (each))
+    return valid_query
+
 
 def r_rdf3x_with_perf(runs, queryLocations, dataFile, actions = ["load", "query_hot", "query_cold"]):
     """This function is used to run the RDF3x DMS with perf tool.
@@ -611,14 +634,16 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile, actions = ["load", "query_
 
             subprocess.call("rm -r /tmp/*", shell = True)
 
+
+    all_valid_queries = None
     if query_hot_flag or query_cold_flag:
         load_command = "/scripts/rdf3x/RDF3xLoadPerf.sh /tmp rdf3x_graph %s /dev/null" % (dataFile)
         subprocess.call(load_command, shell = True)
-
+        all_valid_queries = return_rdf3x_valid_queries(queryLocations, dataFile)
+        print("Inside RDF3x and the valid queries are :", all_valid_queries)
 
     if query_cold_flag:
-        m = glob.glob(queryLocations + "/*.sparql")
-        for each_command in m:
+        for each_command in all_valid_queries:
             name_of_file = each_command.split("/")[-1].split(".")[0]
             subprocess.call("echo %s >> /var/log/rdf3x/query_cold_logs.log" % (name_of_file), shell = True)
             for each in range(runs):
@@ -626,8 +651,7 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile, actions = ["load", "query_
                 run_perf(query_command, "/var/log/rdf3x/query_cold_logs_perf.log.%s" %(name_of_file), clear_cache = True)
     
     if query_hot_flag:
-        m = glob.glob(queryLocations + "/*.sparql")
-        for each_command in m:
+        for each_command in all_valid_queries:
             name_of_file = each_command.split("/")[-1].split(".")[0]
             subprocess.call("echo %s >> /var/log/rdf3x/query_hot_logs.log" % (name_of_file), shell = True)
             for each in range(runs):
@@ -1143,13 +1167,14 @@ def get_name_of_file(file_location):
 
 def generate_rdf_queries(rdf_query_location):
     """This function will generate SPARQL query file for the 
-    Virtuoso RDF Model and the Apache Jena
+    Virtuoso RDF Model, Apache Jena, and the 4store DMSs
     rdf_query_location : Where the initial Sparql Queries are provided by the user"""
     logger.info("*"*80)
     logger.info("Creating rdf query files from queries present at %s \
         for Jena (/jena_queries) and Virtuoso (/virtuoso_queries)" % (rdf_query_location))
-    os.mkdir("/virtuoso_queries")
-    os.mkdir("/jena_queries")
+    #os.mkdir("/virtuoso_queries")
+    #os.mkdir("/jena_queries")
+    #os.mkdir("/4store_queries")
     all_sparql = glob.glob(rdf_query_location + "/*.sparql")
     for each in all_sparql:
         new_file = open("/virtuoso_queries/" + get_name_of_file(each), "w")
@@ -1164,8 +1189,11 @@ def generate_rdf_queries(rdf_query_location):
         apache_file = open("/jena_queries/" + get_name_of_file(each), "w")
         apache_file.write(original_file)
         apache_file.close()
+        fourstore_file = open("/4store_queries/" + get_name_of_file(each), "w")
+        fourstore_file.write(original_file.replace("\n", " ").strip(";"))
+        fourstore_file.close()
     logger.info("Created rdf query files from queries present at %s \
-        for Jena (/jena_queries) and Virtuoso (/virtuoso_queries)" % (rdf_query_location))
+        for Jena (/jena_queries), Virtuoso (/virtuoso_queries) and 4store (/4store)" % (rdf_query_location))
     logger.info("*"*80)
 
 def generate_graph_queries_perf(gremlin_query_location_cold, gremlin_query_location_hot = None):
@@ -1725,12 +1753,13 @@ def process_all_perfs_dms(perf_directory, query_directory, query_search_string, 
 
 
 
-def generate_perf_csv_for_all_dms(type_of_dms, name_of_file, process_files = ["load", "hot_query", "cold_query"]):
+def generate_perf_csv_for_all_dms(type_of_dms, name_of_file, process_files = ["load", "hot_query", "cold_query"], list_of_dms = []):
     """This function process all the perf log files for the given types of DMS and stores
         it in a single csv file.
     type_of_dms : g_ for graph based DMS, and r_ in case of RDF based DMS.
     name_of_file : The name of the CSV file.
     process_files : This is a list which tells us what files to process.
+    list_of_dms : This is a list of DMSs which will be looked into
     """    
 
     load_flag = False
@@ -1752,14 +1781,14 @@ def generate_perf_csv_for_all_dms(type_of_dms, name_of_file, process_files = ["l
     find_header = None
     
     for each in directory_maps:
-        if type_of_dms in each:
+        if each in list_of_dms:
             dic_all[each] = process_all_perfs_dms("/var/log/%s/" % (directory_maps[each]), query_directory_maps[each], query_extension_maps[each], graph_based)
             find_header = each
 
 
-    print(dic_all)
+#    print(dic_all)
     dic_load_headers = dic_all[find_header][0]
-    print(dic_load_headers)
+#    print(dic_load_headers)
     f.write(",".join(dic_load_headers['1']))
     f.write(",")
     for i in range(2,5):
@@ -1771,6 +1800,7 @@ def generate_perf_csv_for_all_dms(type_of_dms, name_of_file, process_files = ["l
 
     
     for each in dic_all:
+        print("**************",each,"***********************")
         m = dic_all[each][1:]
         if load_flag:
             all_loads = m[0]
@@ -1881,6 +1911,21 @@ def clean_jena(actions = ["query_hot", "query_cold"]):
     if "query_cold" in actions:
         jena_file_cleaner("/var/log/jena/query_cold_logs.log")
 
+def identify_benchmark_actions(user_input):
+    user_input_lower = [each.lower() for each in user_input.split(",")]
+    actions = []
+    process_files = []
+    if "load" in user_input_lower:
+        actions.append("load")
+        process_files.append("load")
+    if "warm_cache" in user_input_lower:
+        actions.append("query_hot")
+        process_files.append('hot_query')
+    if "cold_cache" in user_input_lower:
+        actions.append("query_cold")
+        process_files.append("cold_query")
+    return actions, process_files
+
 if __name__ == "__main__":
     logger.info("Litmus Benchmark Suite")
     parser = argparse.ArgumentParser(description='The Litmus Benchmark Suite')
@@ -1890,8 +1935,9 @@ if __name__ == "__main__":
     parser.add_argument('-rq', '--rdf_queries', help = 'The location of the Sparql Queries', required = True)    
     parser.add_argument('-v', '--verbose', action = "store_true", help = "Verbose", required = False)
     parser.add_argument('-a','--all', action = "store_true" , help='Run for all DMS', required=False)
-    parser.add_argument('-g','--graph', action = "store_true", help='Run for all Graph Based DMS', required=False)
-    parser.add_argument('-r','--rdf', action = "store_true", help='Run for all RDF Based DMS', required=False)
+    parser.add_argument('-g','--graph', action = "store", help='Pass a string with the names of Graph Based DMS seperated by commas. (eg. "orient,sparksee")', required=False)
+    parser.add_argument('-r','--rdf', action = "store", help='Pass a string with the names of RDF Based DMS seperated by commas. (eg. "jena,4store")', required=False)
+    parser.add_argument('-ba', '--benchmark_actions', help = 'Pass a string with the actions to be carried out for benchmarking. The three options are "warm_cache", "cold_cache", "load"', required = True)
     parser.add_argument('-n', '--runs', help='Number of times, the experiment should be conducted', required = False)
     
     
@@ -1899,18 +1945,24 @@ if __name__ == "__main__":
     if not sanity_checks(args):
         sys.exit(-1)
     
-    final_list = None
+    final_list = []
     verbose = args['verbose']
-    if args['all'] or (args['graph'] and args['rdf']):
+    if args['all']:
         final_list = graph_based + rdf_based
-        args['graph'] = True
-        args['rdf'] = True
+        args['graph'] = ",".join(graph_based) 
+        args['rdf'] = ",".join(rdf_based)
+    elif args['graph'] and args['rdf']:
+        for each in args['graph'].split(","):
+            final_list.append("g_" + each)
+        for each in args['rdf'].split(","):
+            final_list.append("r_" + each)
     elif args['graph']:
-        final_list = graph_based 
+        for each in args['graph'].split(","):
+            final_list.append("g_" + each)
     elif args['rdf']:
-        final_list = rdf_based
-    else:
-        final_list = graph_based + rdf_based
+        for each in args['rdf'].split(","):
+            final_list.append("r_" + each)
+
     total_runs = None 
     try:
         total_runs = int(args['runs'])
@@ -1924,7 +1976,12 @@ if __name__ == "__main__":
         % (total_runs, args['graph_datafile'], args['graph_queries'], args['rdf_datafile'], args['rdf_queries']))
     
     create_log_files(final_list)
-    
+
+    benchmark_actions, process_files = identify_benchmark_actions(args['benchmark_actions'])
+
+    print(final_list)
+    print(benchmark_actions)
+    print(process_files)
 
     if args['graph']:
         generate_graph_queries(args['graph_queries']+"/gremlin.groovy.cold_cache", \
@@ -1936,17 +1993,33 @@ if __name__ == "__main__":
         name_of_graph = name_of_graph[0]
 #        g_sparksee(total_runs, name_of_graph)
 #        g_neo4j(total_runs, name_of_graph)
-        print("Called the function")
-        print("Please run")        
-        set_java_path(java8 = False)
-#        g_tinker_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
+#        print("Called the function")
+#        print("Please run")
+                
         set_java_path(java8 = True)
-        g_sparksee_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
+
+        if "g_tinker" in final_list:
+            print("Benchmarking Tinker")
+            set_java_path(java8 = False)
+            g_tinker_with_perf(total_runs, name_of_graph, actions = benchmark_actions)
+            set_java_path(java8 = True)
+
+        if "g_sparksee" in final_list:
+            print("Benchmarking Sparksee")
+            g_sparksee_with_perf(total_runs, name_of_graph, actions = benchmark_actions)
+
+        if "g_orient" in final_list:
+            print("Benchmarking Orient")
+            g_orient_with_perf(total_runs, name_of_graph, actions = benchmark_actions)
+
+        if "g_neo4j" in final_list:
+            print("Benchmarking Neo4j")
+            g_neo4j_with_perf(total_runs, name_of_graph, actions = benchmark_actions)
+
 #        g_neo4j_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
-        g_orient_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
-        directory_maps = {'g_tinker':'tinker', 'g_neo4j':'neo4j', 'g_sparksee':'sparksee', 'g_orient':'orient'}
-        directory_maps = {'g_sparksee':'sparksee', 'g_orient':'orient'}
-        generate_perf_csv_for_all_dms("g_", "temp_graph.csv", process_files = ["hot_query", "cold_query"])
+#        g_orient_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
+#        directory_maps = {'g_tinker':'tinker', 'g_neo4j':'neo4j', 'g_sparksee':'sparksee', 'g_orient':'orient'}
+        generate_perf_csv_for_all_dms("g_", "temp_graph.csv", process_files = process_files, list_of_dms = ["g_" + each for each in args['graph'].split(",")])
 
  #       graph_based = ["g_tinker", "g_sparksee"]
 #        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
@@ -1957,18 +2030,33 @@ if __name__ == "__main__":
         name_of_graph = name_of_graph[0]
         print(name_of_graph)
 
-        #r_virtuoso_with_perf(10, "/virtuoso_queries", args['rdf_datafile'], actions = ["load"])
+        if "r_virtuoso" in final_list:
+            print("Benchmarking Virtuoso")
+            r_virtuoso_with_perf(total_runs, "/virtuoso_queries", name_of_graph, actions = benchmark_actions)
 
-#        rdf_based = ['r_virtuoso', 'r_rdf3x']
+        if "r_jena" in final_list:
+            print("Benchmarking Jena")
+            r_jena_with_perf(total_runs, "/jena_queries", name_of_graph, actions = benchmark_actions)
+
+        if "r_rdf3x" in final_list:
+            print("Benchmarking RDF3x")
+            r_rdf3x_with_perf(total_runs, args['rdf_queries'], name_of_graph, actions = benchmark_actions)
+
+        if "r_4store" in final_list:
+            print("Benchmarking 4store")
+            r_4store_with_perf(total_runs, "/4store_queries", name_of_graph, actions = benchmark_actions)
+
+#            r_jena_with_perf(total_runs, "/4store_queries", args['rdf_datafile'], actions = benchmark_actions)
 #        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["query_hot"])
 #        r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph, actions = ["query_hot"])
 #        r_virtuoso_with_perf(1, '/virtuoso_queries', name_of_graph, actions = ["query_hot"])
 #        clean_virtuoso(actions = ["query_hot"])
 #        clean_jena(actions = ["query_hot"])
 #        directory_maps = {'r_jena': 'jena', 'r_virtuoso':'virtuoso'}
-        r_4store_with_perf(1, args['rdf_queries'], name_of_graph, actions = ["query_hot", "query_cold", "load"])
         
-#        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = ["hot_query", "cold_query"])
+        generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = process_files, list_of_dms = ["r_" + each for each in args['rdf'].split(",")])
+
+
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)

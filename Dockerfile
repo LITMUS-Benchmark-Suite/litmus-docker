@@ -187,13 +187,18 @@ RUN mkdir /gremlin_query_perf
 
 # copying all the scripts
 #ADD ./hello_world.py ./
+
+RUN mkdir /virtuoso_queries
+RUN mkdir /jena_queries
+RUN mkdir /4store_queries
 ADD ./run_script.py ./
 
 #ADD ./orient_gremlin.sh /orientdb/bin/gremlin.sh
 #ADD ./gremlin_gremlin.sh /gremlin_groovy/bin/gremlin.sh
 
 #RUN chmod 777 /orientdb/bin/gremlin.sh
-CMD python3 run_script.py -r -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && java -version
+#CMD python3 run_script.py
+#CMD python3 run_script.py -r -n 3 -gd /graph_data -rd /rdf_data -gq /gremlin_query -rq /sparql_query && java -version
 #CMD ls /usr/lib/jvm/*
 #CMD java -version
 #CMD update-java-alternatives --list
