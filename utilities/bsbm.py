@@ -97,7 +97,7 @@ def foo(filename, graphMLFileName, logger):
 		pud = each.find("publishdate").text
 		productTypeIdMap[each["id"]] = _id 
 		subclass = None
-		writeToFile(graphMLFile, {'_id':_id, 'type': 'Product Type', 'label_n':label_n , 'comment':comment }, defaultTabIndex)
+		writeToFile(graphMLFile, {'_id':_id, 'type': 'product_type', 'label_n':label_n , 'comment':comment }, defaultTabIndex)
 		try:
 			subclass = each.find("subclassof").text
 			allEdges.append((int(subclass), _id, "subclass"))
@@ -118,7 +118,7 @@ def foo(filename, graphMLFileName, logger):
 		pub = each.find("publisher").text
 		pud = each.find("publishdate").text
 		productFeatureIdMap[each["id"]] = _id 
-		writeToFile(graphMLFile, {'_id':_id, 'type':'Product Feature', 'label_n':label_n , 'comment':comment }, defaultTabIndex)
+		writeToFile(graphMLFile, {'_id':_id, 'type':'product_feature', 'label_n':label_n , 'comment':comment }, defaultTabIndex)
 
 		_id+=1
 
@@ -137,7 +137,7 @@ def foo(filename, graphMLFileName, logger):
 		pub = each.find("publisher").text
 		pud = each.find("publishdate").text
 		producerIdMap[each["id"]] = _id 
-		writeToFile(graphMLFile, {'_id':_id, 'type':'Product Feature', 'label_n':label_n , 'comment':comment, \
+		writeToFile(graphMLFile, {'_id':_id, 'type':'producer', 'label_n':label_n , 'comment':comment, \
 														'homepage':homepage, 'country':country }, defaultTabIndex)
 		_id+=1
 
@@ -161,7 +161,7 @@ def foo(filename, graphMLFileName, logger):
 		productIdMap[each["id"]] = _id 
 		productPropertyTexts = each.findAll("productpropertytextual")
 		productPropertyNumeric = each.findAll("productpropertynumeric")
-		writeToFileWithNested(graphMLFile, {'_id':_id, 'type':'Product Nodes', 'label_n':label_n, 'comment':comment} ,\
+		writeToFileWithNested(graphMLFile, {'_id':_id, 'type':'product', 'label_n':label_n, 'comment':comment} ,\
 				{'ProductPropertyTextual':productPropertyTexts, 'ProductPropertyNumeric':productPropertyNumeric}, defaultTabIndex)
 		_id+=1
 		
@@ -179,7 +179,7 @@ def foo(filename, graphMLFileName, logger):
 		homepage = each.find("homepage").text
 		country = each.find("country").text
 		vendorIdMap[each["id"]] = _id 
-		writeToFile(graphMLFile, {'_id':_id, 'type':'Vendor', 'label_n':label_n , 'comment':comment, \
+		writeToFile(graphMLFile, {'_id':_id, 'type':'vendor', 'label_n':label_n , 'comment':comment, \
 														'homepage':homepage, 'country':country }, defaultTabIndex)
 		_id+=1
 
@@ -202,7 +202,7 @@ def foo(filename, graphMLFileName, logger):
 		offerWebPage = each.find("offerwebpage").text
 		allEdges.append((productIdMap[prod], _id, "offeron"))
 		allEdges.append((vendorIdMap[vend], _id, "offerby"))
-		writeToFile(graphMLFile, {'_id':_id, 'type':'Offer', 'OfferWebPage':offerWebPage , 'price':price, \
+		writeToFile(graphMLFile, {'_id':_id, 'type':'offer', 'OfferWebPage':offerWebPage , 'price':price, \
 														'DeliveryDays':dd, 'ValidFrom':vf, 'ValidTill':vt }, defaultTabIndex)
 
 		_id+=1
@@ -219,7 +219,7 @@ def foo(filename, graphMLFileName, logger):
 		mbox_sha1sum = each.find("mbox_sha1sum").text
 		country = each.find("country").text
 		personIdMap[each["id"]] = _id
-		writeToFile(graphMLFile, {'_id':_id, 'type':'Person', 'mbox_sha1sum':mbox_sha1sum , 'country':country}, defaultTabIndex)
+		writeToFile(graphMLFile, {'_id':_id, 'type':'person', 'mbox_sha1sum':mbox_sha1sum , 'country':country}, defaultTabIndex)
 
 		_id+=1
 	logger.info("Finished Reading Person Tags. Total Nodes created in the graph till now = %d" % (_id-1))
@@ -240,7 +240,7 @@ def foo(filename, graphMLFileName, logger):
 		reviewIdMap[each["id"]] = _id
 		allEdges.append((_id, productIdMap[prod], "reviewfor"))
 		allEdges.append((personIdMap[reviewer], _id, "reviewby"))
-		writeToFileWithNested(graphMLFile, {'_id':_id, 'type':'Rating', 'title':title, 'text':textD, 'reviewDate':reviewDate} ,\
+		writeToFileWithNested(graphMLFile, {'_id':_id, 'type':'review', 'title':title, 'text':textD, 'reviewDate':reviewDate} ,\
 				{'rating':ratings}, defaultTabIndex)
 		_id+=1
 		
