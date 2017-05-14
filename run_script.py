@@ -1886,7 +1886,7 @@ def virtuoso_file_cleaner(path):
         else:
             l = each.split("-- ")[1].strip().split(" ")
             if "msec" in l[1]:
-                f.write(str(float(l[0])/1000) + "\n")
+                f.write((str(float(l[0])/1000) + "\t")*3 + "\n")
     f.close()
 
 def clean_virtuoso(actions = ["query_hot", "query_cold"]):
@@ -1902,7 +1902,7 @@ def jena_file_cleaner(path):
         if "query" in each:
             f.write(each)
         else:
-            f.write(each.split("Time: ")[1].split(" sec")[0] + "\n")
+            f.write((each.split("Time: ")[1].split(" sec")[0] + "\t")*3 + "\n")
     f.close()
 
 def clean_jena(actions = ["query_hot", "query_cold"]):
@@ -1910,6 +1910,26 @@ def clean_jena(actions = ["query_hot", "query_cold"]):
         jena_file_cleaner("/var/log/jena/query_hot_logs.log")
     if "query_cold" in actions:
         jena_file_cleaner("/var/log/jena/query_cold_logs.log")
+
+
+def graph_file_cleaner(path):
+    content = open(path, "r").readlines()
+    filehandler = open(path, "w")
+    for each in content:
+        try:
+            filehandler.write(str(float(each.strip())/1000) + "\n")
+        except Exception as e:
+            filehandler.write(each)
+    filehandler.close()
+
+def clean_graph_dms(dms, actions = ["query_hot", "query_cold", "load"]):
+    for each in dms:
+        if "query_hot" in actions:
+            graph_file_cleaner("/var/log/%s/query_hot_logs.log" % (directory_maps[each]))
+        if "query_cold" in actions:
+            graph_file_cleaner("/var/log/%s/query_cold_logs.log" % (directory_maps[each]))
+        if "load" in actions:
+            graph_file_cleaner("/var/log/%s/load_logs.log" % (directory_maps[each]))
 
 def identify_benchmark_actions(user_input):
     user_input_lower = [each.lower() for each in user_input.split(",")]
@@ -1925,6 +1945,7 @@ def identify_benchmark_actions(user_input):
         actions.append("query_cold")
         process_files.append("cold_query")
     return actions, process_files
+
 
 if __name__ == "__main__":
     logger.info("Litmus Benchmark Suite")
@@ -2019,6 +2040,7 @@ if __name__ == "__main__":
 #        g_neo4j_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
 #        g_orient_with_perf(10, name_of_graph, actions = ["query_hot", "query_cold"])
 #        directory_maps = {'g_tinker':'tinker', 'g_neo4j':'neo4j', 'g_sparksee':'sparksee', 'g_orient':'orient'}
+        clean_graph_dms(dms = ["g_" + each for each in args['graph'].split(",")], actions = benchmark_actions)
         generate_perf_csv_for_all_dms("g_", "temp_graph.csv", process_files = process_files, list_of_dms = ["g_" + each for each in args['graph'].split(",")])
 
  #       graph_based = ["g_tinker", "g_sparksee"]
