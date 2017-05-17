@@ -57,101 +57,110 @@ query_extension_maps = { \
 
 def set_java_path(java8 = True):
     if java8:
-        subprocess.call("sudo update-java-alternatives --set /usr/lib/jvm/java-1.8.0-openjdk-amd64", shell = True)
+        subprocess.call("update-java-alternatives --set /usr/lib/jvm/java-1.8.0-openjdk-amd64", shell = True)
     else:
-        subprocess.call("sudo update-java-alternatives --set /usr/lib/jvm/java-1.7.0-openjdk-amd64", shell = True)
+        subprocess.call("update-java-alternatives --set /usr/lib/jvm/java-1.7.0-openjdk-amd64", shell = True)
 
-def gather_data_graph_dms(dms):
+def gather_data_graph_dms(dms, actions = ["load", "query_hot", "query_cold"]):
     #Gather the data and put it in a csv format
     """This function is used to process the log files for a rdf based dms and 
     returns the data in form of a tuple of two lists.
     dms : is the name of the Data Management Solution."""     
     logger.info("Inside the gather_data_graph_dms for %s" % (dms))
     csv_load = []
+    csv_query = []
+    
+    load_flag = "load" in actions
+    query_hot_flag = "query_hot" in actions
+    query_cold_flag = "query_cold" in actions
+    if load_flag:
 
-    logger.info("Opening the load_logs.log file for %s" % (dms))
-    file_handler = open("/var/log/%s/load_logs.log" % (directory_maps[dms]), "r")
-    all_lines = file_handler.readlines()
-    file_handler.close()
-    run_id = 1
-    logger.info("Succesfuly opened and read the load_logs.log file for %s" % (dms))
+        logger.info("Opening the load_logs.log file for %s" % (dms))
+        file_handler = open("/var/log/%s/load_logs.log" % (directory_maps[dms]), "r")
+        all_lines = file_handler.readlines()
+        file_handler.close()
+        run_id = 1
+        logger.info("Succesfuly opened and read the load_logs.log file for %s" % (dms))
 
-    for each in all_lines:
-        try:
-            csv_load.append([directory_maps[dms], str(run_id), "load", str(int(each.strip()))])
-            run_id+=1
-        except Exception as e:
-            print(e)
+        for each in all_lines:
+            try:
+                csv_load.append([directory_maps[dms], str(run_id), "load", str(float(each.strip()))])
+                run_id+=1
+            except Exception as e:
+                print(e)
 
-    logger.info("Succesfuly processed the load_logs.log file for %s" % (dms))
+        logger.info("Succesfuly processed the load_logs.log file for %s" % (dms))
 
     #for each in csv_load:
     #    print(",".join(each))
 
-    logger.info("Opening the query_cold_logs.log file for %s" % (dms))
-    file_handler = open("/var/log/%s/query_cold_logs.log" % (directory_maps[dms]), "r")
-    all_lines = file_handler.readlines()[5:]
-    file_handler.close()
-    logger.info("Succesfuly opened and read the query_cold_logs.log file for %s" % (dms))
+    if query_cold_flag:
+        logger.info("Opening the query_cold_logs.log file for %s" % (dms))
+        file_handler = open("/var/log/%s/query_cold_logs.log" % (directory_maps[dms]), "r")
+        all_lines = file_handler.readlines()
+        file_handler.close()
+        logger.info("Succesfuly opened and read the query_cold_logs.log file for %s" % (dms))
 
-    run_id = 0
-    csv_query = []
-    flag = True
-    for each in all_lines:
-        if each[0]=="#":
-            run_id+=1
-            flag = True
-            continue;
-        if flag:
-            if "Query" not in each:
-                continue
-            query_no = each.split("Query ")[1].split("=")[0]
-            flag = False
-        else:
-            try:
-                csv_query.append([directory_maps[dms], str(run_id), "query_cold",\
-                 str(query_no), str(int(each.strip()))])
+        run_id = 0
+        flag = True
+        for each in all_lines:
+            if each[0]=="#":
+                run_id+=1
                 flag = True
-            except Exception as e:
-                print(e)
-    logger.info("Succesfuly processed the query_cold_logs.log file for %s" % (dms))
+                continue;
+            if flag:
+                if "Query" not in each:
+                    continue
+                query_no = each.split("Query ")[1].split("=")[0]
+                flag = False
+            else:
+                try:
+                    csv_query.append([directory_maps[dms], str(run_id), "query_cold",\
+                     str(query_no), str(float(each.strip()))])
+                    flag = True
+                except Exception as e:
+                    print(e)
+        logger.info("Succesfuly processed the query_cold_logs.log file for %s" % (dms))
 
 
 
-    
-    logger.info("Opening the query_hot_logs.log file for %s" % (dms))
-    file_handler = open("/var/log/%s/query_hot_logs.log" % (directory_maps[dms]), "r")
-    all_lines = file_handler.readlines()[5:]
-    file_handler.close()
-    logger.info("Succesfuly opened and read the query_hot_logs.log file for %s" % (dms))
-    run_id = 0
-    flag = True
-    for each in all_lines:
-        if each[0]=="#":
-            run_id+=1
-            flag = True
-            continue;
-        if flag:
-            if "Query" not in each:
-                continue
-            query_no = each.split("Query ")[1].split("=")[0]
-            flag = False
-        else:
-            try:
-                csv_query.append([directory_maps[dms], str(run_id), "query_hot",\
-                 str(query_no), str(int(each.strip()))])
+    if query_hot_flag:
+        logger.info("Opening the query_hot_logs.log file for %s" % (dms))
+        file_handler = open("/var/log/%s/query_hot_logs.log" % (directory_maps[dms]), "r")
+        all_lines = file_handler.readlines()
+        file_handler.close()
+        logger.info("Succesfuly opened and read the query_hot_logs.log file for %s" % (dms))
+        run_id = 0
+        flag = True
+        for each in all_lines:
+            if each[0]=="#":
+                run_id+=1
                 flag = True
-            except Exception as e:
-                print(e)
-    logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
+                continue;
+            if flag:
+                if "Query" not in each:
+                    continue
+                query_no = each.split("Query ")[1].split("=")[0]
+                flag = False
+            else:
+                try:
+                    csv_query.append([directory_maps[dms], str(run_id), "query_hot",\
+                     str(query_no), str(float(each.strip()))])
+                    flag = True
+                except Exception as e:
+                    print(e)
+        logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
 
 
     
     #for each in csv_query:
     #    print(",".join(each))
+    print(dms)
+    print(csv_load)
+    print(csv_query)    
     return (csv_load, csv_query)
 
-def gather_data_rdf_dms(dms):
+def gather_data_rdf_dms(dms, actions = ["load", "query_hot", "query_cold"]):
     #Gather the data and put it in a csv format
     """This function is used to process the log files for a rdf based dms and 
     returns the data in form of a tuple of two lists.
@@ -159,85 +168,92 @@ def gather_data_rdf_dms(dms):
     logger.info("Inside the gather_data_rdf_dms for %s" % (dms))
 
     csv_load = []
-
-    logger.info("Opening the load_logs.log file for %s" % (dms))
-
-    file_handler = open("/var/log/%s/load_logs.log" % (directory_maps[dms]), "r")
-    all_lines = file_handler.readlines()
-    file_handler.close()
-    logger.info("Succesfuly opened and read the load_logs.log file for %s" % (dms))
-
-    run_id = 1
-    for each in all_lines:
-        csv_load.append([directory_maps[dms], str(run_id), "load", \
-            each.strip().split("\t")[2]])
-        run_id+=1
-
-    logger.info("Succesfuly processed the load_logs.log file for %s" % (dms))
-
-
     csv_query = []
 
+    load_flag = "load" in actions
+    query_hot_flag = "query_hot" in actions
+    query_cold_flag = "query_cold" in actions
 
-    logger.info("Opening the query_cold_logs.log file for %s" % (dms))
-    file_handler = open("/var/log/%s/query_cold_logs.log" % (directory_maps[dms]), "r")
-    all_lines = file_handler.readlines()
-    file_handler.close()
-    logger.info("Succesfuly opened and read the query_cold_logs.log file for %s" % (dms))
+    if load_flag:
+        logger.info("Opening the load_logs.log file for %s" % (dms))
 
+        file_handler = open("/var/log/%s/load_logs.log" % (directory_maps[dms]), "r")
+        all_lines = file_handler.readlines()
+        file_handler.close()
+        logger.info("Succesfuly opened and read the load_logs.log file for %s" % (dms))
 
-    run_id = 0
-    query_name = ""
-    name_flag = True
-    for each in all_lines:
-        if each[0]=="*":
-            run_id = 0
-            name_flag = True
-            continue;
-        if name_flag:
-            query_name = each.strip()
-            name_flag = False
-        else:
+        run_id = 1
+        for each in all_lines:
+            csv_load.append([directory_maps[dms], str(run_id), "load", \
+                each.strip().split("\t")[2]])
             run_id+=1
-            csv_query.append([directory_maps[dms], str(run_id), "query_cold", query_name, \
-                    each.strip().split("\t")[2]])
 
-    logger.info("Succesfuly processed the query_cold_logs.log file for %s" % (dms))
+        logger.info("Succesfuly processed the load_logs.log file for %s" % (dms))
+
+
+
+
+    if query_cold_flag:
+        logger.info("Opening the query_cold_logs.log file for %s" % (dms))
+        file_handler = open("/var/log/%s/query_cold_logs.log" % (directory_maps[dms]), "r")
+        all_lines = file_handler.readlines()
+        file_handler.close()
+        logger.info("Succesfuly opened and read the query_cold_logs.log file for %s" % (dms))
+
+
+        run_id = 0
+        query_name = ""
+        name_flag = True
+        for each in all_lines:
+            if each[0]=="*":
+                run_id = 0
+                name_flag = True
+                continue;
+            if name_flag:
+                query_name = each.strip()
+                name_flag = False
+            else:
+                run_id+=1
+                csv_query.append([directory_maps[dms], str(run_id), "query_cold", query_name, \
+                        each.strip().split("\t")[2]])
+
+        logger.info("Succesfuly processed the query_cold_logs.log file for %s" % (dms))
     
 
-    logger.info("Opening the query_hot_logs.log file for %s" % (dms))
-    file_handler = open("/var/log/%s/query_hot_logs.log" % (directory_maps[dms]), "r")
-    all_lines = file_handler.readlines()
-    file_handler.close()
-    logger.info("Succesfuly opened and read the query_hot_logs.log file for %s" % (dms))
+    if query_hot_flag:
+        logger.info("Opening the query_hot_logs.log file for %s" % (dms))
+        file_handler = open("/var/log/%s/query_hot_logs.log" % (directory_maps[dms]), "r")
+        all_lines = file_handler.readlines()
+        file_handler.close()
+        logger.info("Succesfuly opened and read the query_hot_logs.log file for %s" % (dms))
 
 
-    run_id = 0
-    query_name = ""
-    name_flag = True
-    for each in all_lines:
-        if each[0]=="*":
-            run_id = 0
-            name_flag = True
-            continue;
-        if name_flag:
-            query_name = each.strip()
-            name_flag = False
-        else:
-            run_id+=1
-            csv_query.append([directory_maps[dms], str(run_id), "query_hot", query_name, \
-                    each.strip().split("\t")[2]])
+        run_id = 0
+        query_name = ""
+        name_flag = True
+        for each in all_lines:
+            if each[0]=="*":
+                run_id = 0
+                name_flag = True
+                continue;
+            if name_flag:
+                query_name = each.strip()
+                name_flag = False
+            else:
+                run_id+=1
+                csv_query.append([directory_maps[dms], str(run_id), "query_hot", query_name, \
+                        each.strip().split("\t")[2]])
 
-    logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
-        
-    for each in csv_load:
-        print(",".join(each))
-    for each in csv_query:
-        print(",".join(each))
+        logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
+            
+        for each in csv_load:
+            print(",".join(each))
+        for each in csv_query:
+            print(",".join(each))
 
     return (csv_load, csv_query)
 
-def create_csv_from_logs(filename_load, filename_query, list_of_dbs, graph_dms):
+def create_csv_from_logs(filename_load, filename_query, list_of_dbs, graph_dms, actions = ["load", "query_hot", "query_cold"]):
     """This function creates a combined csv file which has the data 
     about all the graph based dms or rdf based dms.
     filename_load : name of the file where the loading time data is stored.
@@ -246,14 +262,18 @@ def create_csv_from_logs(filename_load, filename_query, list_of_dbs, graph_dms):
     graph_dms : True if it it graph based DMS, False if it is RDF based DMS"""
     load_logs = []
     query_logs = []
+    
     for each in list_of_dbs:
         load, query = None, None    
         if graph_dms:
-            load, query = gather_data_graph_dms(each)
+            load, query = gather_data_graph_dms(each, actions)
         else:
-            load, query = gather_data_rdf_dms(each)
-        load_logs = load_logs + load
-        query_logs = query_logs + query
+            load, query = gather_data_rdf_dms(each, actions)
+        if len(query)!=0:
+            query_logs = query_logs + query
+        if len(load)!=0:
+            load_logs = load_logs + load
+
     load_handler = open(filename_load, "w")
     load_handler.write("dms,run_id,load_type,time\n")
     for each in load_logs:
@@ -965,7 +985,6 @@ def r_jena_with_perf(runs, queryLocation, dataFile, actions = ["load", "query_ho
     load_flag = "load" in actions
     query_hot_flag = "query_hot" in actions
     query_cold_flag = "query_cold" in actions
-    subprocess.call("/scripts/jena/jena_settings.sh", shell = True)
 
     if load_flag:
         logger.info("Running the loading scripts for the Jena DMS")
@@ -979,7 +998,7 @@ def r_jena_with_perf(runs, queryLocation, dataFile, actions = ["load", "query_ho
 
 
     if query_hot_flag:
-        epilogue = ["cat /jena_hot_cache | head -n 1 >> /var/log/jena/query_hot_logs.log"]
+        epilogue = ["cat /jena_hot_cache | head -n 1 >> /var/log/jena/query_hot_logs.log" , "cat /jena_hot_cache"]
         command = "/scripts/jena/JenaTDBLoadQuery.sh /tmp jena_graph_hot %s /dev/null" % (dataFile)
         subprocess.call(command, shell = True)    
         logger.info("Running the queries for the Jena DMS on hot cache")
@@ -995,7 +1014,7 @@ def r_jena_with_perf(runs, queryLocation, dataFile, actions = ["load", "query_ho
     subprocess.call("rm -r /tmp/*", shell = True)
     
     if query_cold_flag:
-        epilogue = ["cat /jena_cold_cache | head -n 1 >> /var/log/jena/query_cold_logs.log"]
+        epilogue = ["cat /jena_cold_cache | head -n 1 >> /var/log/jena/query_cold_logs.log", "cat /jena_cold_cache"]
 
         command = "/scripts/jena/JenaTDBLoadQuery.sh /tmp jena_graph_cold %s /dev/null" % (dataFile)
         subprocess.call(command, shell = True)    
@@ -1881,12 +1900,12 @@ def virtuoso_file_cleaner(path):
     content = open(path, "r").readlines()
     f = open(path, "w")
     for each in content:
-        if "query" in each:
-            f.write(each)
-        else:
+        try:
             l = each.split("-- ")[1].strip().split(" ")
             if "msec" in l[1]:
                 f.write((str(float(l[0])/1000) + "\t")*3 + "\n")
+        except Exception as e:
+            f.write(each)
     f.close()
 
 def clean_virtuoso(actions = ["query_hot", "query_cold"]):
@@ -1899,16 +1918,18 @@ def jena_file_cleaner(path):
     content = open(path, "r").readlines()
     f = open(path, "w")
     for each in content:
-        if "query" in each:
-            f.write(each)
-        else:
+        try:
             f.write((each.split("Time: ")[1].split(" sec")[0] + "\t")*3 + "\n")
+        except Exception as e:
+            f.write(each)
     f.close()
 
 def clean_jena(actions = ["query_hot", "query_cold"]):
     if "query_hot" in actions:
+        print("Modifying Query HOT LOG FILE FOR JENA")
         jena_file_cleaner("/var/log/jena/query_hot_logs.log")
     if "query_cold" in actions:
+        print("Modifying Query COLD LOG FILE FOR JENA")
         jena_file_cleaner("/var/log/jena/query_cold_logs.log")
 
 
@@ -1945,6 +1966,18 @@ def identify_benchmark_actions(user_input):
         actions.append("query_cold")
         process_files.append("cold_query")
     return actions, process_files
+
+def create_combined_log_file(filename, files = []):
+    for each in files:
+        if not os.path.isfile(each):
+            print("Error. %s not a valid file" % (each))
+            return
+    
+    filehandler = open(filename, "w")
+    filehandler.write(open(files[0], "r").readlines()[0])
+    for each in files:
+        filehandler.write("".join(open(each, "r").readlines()[1:]))
+    filehandler.close()
 
 
 if __name__ == "__main__":
@@ -2042,6 +2075,7 @@ if __name__ == "__main__":
 #        directory_maps = {'g_tinker':'tinker', 'g_neo4j':'neo4j', 'g_sparksee':'sparksee', 'g_orient':'orient'}
         clean_graph_dms(dms = ["g_" + each for each in args['graph'].split(",")], actions = benchmark_actions)
         generate_perf_csv_for_all_dms("g_", "temp_graph.csv", process_files = process_files, list_of_dms = ["g_" + each for each in args['graph'].split(",")])
+        create_csv_from_logs("graph.load.logs", "graph.query.logs", [each for each in final_list if each[:2] == "g_"], True, actions = benchmark_actions)
 
  #       graph_based = ["g_tinker", "g_sparksee"]
 #        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
@@ -2055,10 +2089,12 @@ if __name__ == "__main__":
         if "r_virtuoso" in final_list:
             print("Benchmarking Virtuoso")
             r_virtuoso_with_perf(total_runs, "/virtuoso_queries", name_of_graph, actions = benchmark_actions)
+            clean_virtuoso(actions = benchmark_actions)
 
         if "r_jena" in final_list:
             print("Benchmarking Jena")
             r_jena_with_perf(total_runs, "/jena_queries", name_of_graph, actions = benchmark_actions)
+            clean_jena(actions = benchmark_actions)   
 
         if "r_rdf3x" in final_list:
             print("Benchmarking RDF3x")
@@ -2068,6 +2104,7 @@ if __name__ == "__main__":
             print("Benchmarking 4store")
             r_4store_with_perf(total_runs, "/4store_queries", name_of_graph, actions = benchmark_actions)
 
+        create_csv_from_logs("rdf.load.logs", "rdf.query.logs", [each for each in final_list if each[:2] == "r_"], False, actions = benchmark_actions)
 #            r_jena_with_perf(total_runs, "/4store_queries", args['rdf_datafile'], actions = benchmark_actions)
 #        r_jena_with_perf(1, '/jena_queries', name_of_graph, actions=["query_hot"])
 #        r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph, actions = ["query_hot"])
@@ -2078,7 +2115,12 @@ if __name__ == "__main__":
         
         generate_perf_csv_for_all_dms("r_", "temp_rdf.csv", process_files = process_files, list_of_dms = ["r_" + each for each in args['rdf'].split(",")])
 
-
+        if args['graph'] and args['rdf']:
+            create_combined_log_file("combined_perf.csv", files = ["temp_graph.csv", "temp_rdf.csv"])
+            if "load" in benchmark_actions:
+                create_combined_log_file("combined.load.logs", files = ["rdf.load.logs", "graph.load.logs"])
+            if "query_hot" in benchmark_actions or "query_cold" in benchmark_actions:
+                create_combined_log_file("combined.query.logs", files = ["rdf.query.logs", "graph.query.logs"])
         #r_rdf3x_with_perf(1, args['rdf_queries'], name_of_graph)
         #r_virtuoso_with_perf(1, "/virtuoso_queries" , name_of_graph)
         #r_rdf3x(total_runs, args['rdf_queries'], name_of_graph)
