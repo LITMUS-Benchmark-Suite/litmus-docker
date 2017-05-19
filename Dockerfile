@@ -87,7 +87,14 @@ RUN cd 4store-v1.1.5 \
 #RUN apt-get i-y nstall oracle-java8-installer
 #RUN apt-get install oracle-java8-set-default
 
-RUN apt-get install -y default-jdk
+RUN apt-get -y update
+RUN apt-get -y upgrade
+RUN apt-get install -y openjdk-7-jdk
+
+RUN wget http://mirror.fibergrid.in/apache/tinkerpop/3.2.4/apache-tinkerpop-gremlin-console-3.2.4-bin.zip
+RUN unzip apache-tinkerpop-gremlin-console-3.2.4-bin.zip
+RUN mv apache-tinkerpop-gremlin-console-3.2.4 gremlin-groovy-3
+
 # create directory for gh-rdf3x logs
 RUN mkdir /var/log/rdf3x
 
@@ -157,7 +164,11 @@ ADD ./jena/* /scripts/jena/
 RUN mkdir scripts/4store/
 ADD ./4store/* /scripts/4store/
 
+#Create directory for tinker3
+RUN mkdir scripts/tinker3/
+ADD ./tinker3/* /scripts/tinker3/
 
+ADD ./tinker.properties ./tinker.properties
 
 
 #Create directory for virtuoso

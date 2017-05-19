@@ -460,6 +460,74 @@ def g_sparksee(runs, xmlFile):
     #gather_data_graph_dms("g_sparksee")
     logger.info("*"*80)
 
+def g_tinker_3_with_perf(runs, xmlFile, actions = ["load", "query_hot", "query_cold"]):
+    """This function is used to run the TinkerGraph DMS with perf tool.
+    runs : THe number of runs
+    xmlFile : The location of the graphml File.
+    """
+
+    logger.info("*"*80)
+    logger.info("Running the scripts for the TinkerGraph using Apache TinkerPop 3 DMS With Perf")
+    logger.info("Data File = %s, Runs = %s" % (xmlFile, runs))
+
+    load_flag = "load" in actions
+    hot_query_flag = "query_hot" in actions
+    cold_query_flag = "query_cold" in actions
+
+    logger.info("Running the command to load the databse")
+
+    if load_flag:
+        for each in range(runs):
+            #Loading the database
+            load_command = "/scripts/tinker3/TinkerLoadPerf.sh %s /var/log/tinker/load_logs.log" % (xmlFile)
+            #print(load_command)
+            run_perf(load_command, "/var/log/tinker/load_log_perf.log", clear_cache = True, epilogue = ["rm -r /tmp/*"])
+
+        print("Finished running the load command")
+
+        #Querying the database
+
+
+    if hot_query_flag or cold_query_flag:
+        load_command = "/scripts/tinker3/TinkerQueryPerf_load.sh /tinker.properties %s /dev/null" % (xmlFile)
+        subprocess.call(load_command, shell = True)
+
+    if cold_query_flag:
+        all_queries = glob.glob("/gremlin_query_perf/tinker3_*");
+
+        logger.info("Running the queries on TinkerGraph on cold cache")
+
+        for each in range(runs):
+            command = 'echo "################Run %d################" >> %s' % (each, "/var/log/tinker/query_cold_logs.log")
+            subprocess.call(command, shell = True)
+            for each_query in all_queries:
+                name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+                cold_query_command = "/scripts/tinker3/TinkerQueryPerf.sh %s /var/log/tinker/query_cold_logs.log" % (each_query)
+                run_perf(cold_query_command, "/var/log/tinker/query_cold_logs_perf.log.%s" %(name_of_query), clear_cache = True)
+
+        print("Finished running the cold query command")
+
+
+
+    if hot_query_flag:
+        all_queries = glob.glob("/gremlin_query_perf/tinker3_*");
+        logger.info("Running the queries on TinkerGraph on hot cache")
+
+        for each in range(runs):
+            command = 'echo "################Run %d################" >> %s' % (each, "/var/log/tinker/query_hot_logs.log")
+            subprocess.call(command, shell = True)
+            for each_query in all_queries:
+                name_of_query = "_".join(each_query.split("/")[-1].split(".")[0].split("_")[1:])
+                print(name_of_query, "****************")
+                hot_query_command = "/scripts/tinker3/TinkerQueryPerf.sh %s /var/log/tinker/query_hot_logs.log" % (each_query)
+                run_perf(hot_query_command, "/var/log/tinker/query_hot_logs_perf.log.%s" %(name_of_query))
+
+    
+    command = "rm -r /tmp/*"
+    subprocess.call(command, shell = True)
+    logger.info("*"*80)
+
+
 def g_tinker_with_perf(runs, xmlFile, actions = ["load", "query_hot", "query_cold"]):
     """This function is used to run the TinkerGraph DMS with perf tool.
     runs : THe number of runs
@@ -1572,6 +1640,15 @@ s = System.currentTimeMillis();\n"""%(name_of_file));
         tinker_filehandler.write("println (System.currentTimeMillis() - s);")
         tinker_filehandler.close()
 
+        tinker3_filehandler = open(base + "tinker3_" + name_of_file + ".groovy", "w")
+        tinker3_filehandler.write('m = GraphFactory.open("/tinker.properties");\n')
+        tinker3_filehandler.write("""x = m.traversal();
+println "======Query %s======";
+s = System.currentTimeMillis();\n"""%(name_of_file));
+        tinker3_filehandler.write(open(each, "r").read() + "\n")
+        tinker3_filehandler.write("println (System.currentTimeMillis() - s);")
+        tinker3_filehandler.close()
+
         neo4j_filehandler = open(base + "neo4j_" + name_of_file + ".groovy", "w")
         neo4j_filehandler.write('x = new Neo4jGraph("/tmp/neo4j_perf");\n')
         neo4j_filehandler.write("""println "======Query %s======";
@@ -2054,9 +2131,10 @@ if __name__ == "__main__":
 
         if "g_tinker" in final_list:
             print("Benchmarking Tinker")
-            set_java_path(java8 = False)
-            g_tinker_with_perf(total_runs, name_of_graph, actions = benchmark_actions)
-            set_java_path(java8 = True)
+            g_tinker_3_with_perf(total_runs, name_of_graph, actions = benchmark_actions)            
+            #set_java_path(java8 = False)
+            
+            #set_java_path(java8 = True)
 
         if "g_sparksee" in final_list:
             print("Benchmarking Sparksee")
