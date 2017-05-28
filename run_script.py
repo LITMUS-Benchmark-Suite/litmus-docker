@@ -298,7 +298,7 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
     epilogue : which needs to be run after the command.
     """
 
-    clear_cache_command = "sudo /sbin/sysctl vm.drop_caches=3"
+    clear_cache_command = "/sbin/sysctl vm.drop_caches=3"
 
     #perf1, perf2, perf3 and perf4 are the four perf sub commands
     perf1 = "perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s" % (log_file+".1", command)
@@ -1269,7 +1269,14 @@ def generate_rdf_queries(rdf_query_location):
         new_file = open("/virtuoso_queries/" + get_name_of_file(each), "w")
         original_file = open(each, "r").read()
         new_file.write("SPARQL ")
-        components = original_file.split("where")
+        components = None
+        if "where" in original_file:
+            components = original_file.split("where")
+        elif "Where" in original_file:
+            components = original_file.split("Where")
+        elif "WHERE" in original_file:
+            components = original_file.split("WHERE")
+            
         virtuoso_query = components[0] + " from <http://test.org> where " + components[1]
         virtuoso_query.strip().strip(";") 
         virtuoso_query = virtuoso_query + ";"
