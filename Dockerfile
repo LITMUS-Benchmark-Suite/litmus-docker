@@ -186,6 +186,7 @@ RUN mkdir /rdf_data
 ADD ./rdf_data/* /rdf_data/
 
 #Copy all the sparql queries
+RUN pwd
 RUN mkdir /sparql_query
 ADD ./sparql_query/* /sparql_query/
 
@@ -203,6 +204,11 @@ RUN mkdir /virtuoso_queries
 RUN mkdir /jena_queries
 RUN mkdir /4store_queries
 ADD ./run_script.py ./
+
+#Adding plotting script here
+RUN apt-get install -y  python3-pandas
+RUN apt-get install -y python3-matplotlib
+ADD ./plot_script.py ./
 
 #ADD ./orient_gremlin.sh /orientdb/bin/gremlin.sh
 #ADD ./gremlin_gremlin.sh /gremlin_groovy/bin/gremlin.sh
