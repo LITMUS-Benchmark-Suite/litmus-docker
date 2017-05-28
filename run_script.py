@@ -298,7 +298,7 @@ def run_perf(command, log_file, clear_cache = False, prelogue = None, epilogue =
     epilogue : which needs to be run after the command.
     """
 
-    clear_cache_command = "echo 3 > /proc/sys/vm/drop_caches"
+    clear_cache_command = "sudo /sbin/sysctl vm.drop_caches=3"
 
     #perf1, perf2, perf3 and perf4 are the four perf sub commands
     perf1 = "perf stat -o %s --append -e cycles,instructions,cache-references,cache-misses,bus-cycles -a %s" % (log_file+".1", command)
@@ -779,6 +779,7 @@ def r_4store_with_perf(runs, queryLocations, dataFile, actions = ["load", "query
 
     if query_cold_flag:
         m = glob.glob(queryLocations + "/*.sparql")
+        print(m)
         for each_command in m:
             name_of_file = each_command.split("/")[-1].split(".")[0]
             subprocess.call("echo %s >> /var/log/4store/query_cold_logs.log" % (name_of_file), shell = True)
@@ -1195,8 +1196,9 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation, actions = ["load
 
     if query_hot_flag:
         logger.info("Running the queries for the Virtuoso DMS on hot cache")
-        epilogue = ["cat virtuoso_query_hot | tail -n 1 >> /var/log/virtuoso/query_hot_logs.log"]
+        epilogue = ["cat virtuoso_query_hot | tail -n 1 >> /var/log/virtuoso/query_hot_logs.log", "cat virtuoso_query_hot"]
         m = glob.glob(queryLocation + "/*.sparql")
+        print(m)
         for each_command in m:
             name_of_file = each_command.split("/")[-1].split(".")[0]
             subprocess.call("echo %s >> /var/log/virtuoso/query_hot_logs.log" % (name_of_file), shell = True)
@@ -1634,6 +1636,7 @@ s = System.currentTimeMillis();\n"""%(name_of_file));
 
         tinker_filehandler = open(base + "tinker_" + name_of_file + ".groovy", "w")
         tinker_filehandler.write('x = new TinkerGraph("/tmp/tinker_perf");\n')
+
         tinker_filehandler.write("""println "======Query %s======";
 s = System.currentTimeMillis();\n"""%(name_of_file));
         tinker_filehandler.write(open(each, "r").read() + "\n")
@@ -1651,6 +1654,7 @@ s = System.currentTimeMillis();\n"""%(name_of_file));
 
         neo4j_filehandler = open(base + "neo4j_" + name_of_file + ".groovy", "w")
         neo4j_filehandler.write('x = new Neo4jGraph("/tmp/neo4j_perf");\n')
+
         neo4j_filehandler.write("""println "======Query %s======";
 s = System.currentTimeMillis();\n"""%(name_of_file));
         neo4j_filehandler.write(open(each, "r").read())
@@ -1660,6 +1664,7 @@ s = System.currentTimeMillis();\n"""%(name_of_file));
 
         orient_filehandler = open(base + "orient_" + name_of_file + ".groovy", "w")
         orient_filehandler.write('x = new OrientGraph("memory:/orient_perf");\n')
+
         orient_filehandler.write("println('======Query %s======');\n"%(name_of_file));
         orient_filehandler.write("s = System.currentTimeMillis();\n");
         orient_filehandler.write(open(each, "r").read())
