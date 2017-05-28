@@ -1,5 +1,7 @@
 from functools import reduce
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse 
 import os
@@ -456,6 +458,8 @@ if __name__ == "__main__" :
     plt.rc('font', **font)
 
     #dms_plots_perf_data("temp_rdf.csv", "load", ['L1-dcache-loads', 'L1-dcache-load-misses'] , graph_or_rdf = "RDF")
+    if not os.path.exists(args['destination_folder']):
+        os.mkdir(args['destination_folder'])
     if not os.path.exists(args['destination_folder'] + "/plots/"):
         os.mkdir(args['destination_folder'] + "/plots/")
     if not os.path.exists(args['destination_folder'] + "/tables/"):
