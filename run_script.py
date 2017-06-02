@@ -6,6 +6,7 @@ import time
 import logging
 import subprocess
 import re
+import io
 
 logging.basicConfig(filename = "Litmus_Benchmark_log.log", level = logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ query_directory_maps = { \
     'g_orient' : '/gremlin_query_perf', \
     'g_neo4j' : '/gremlin_query_perf', \
     'g_tinker' : '/gremlin_query_perf', \
-    'r_rdf3x' : '/sparql_query', \
+    'r_rdf3x' : '/rdf3x_queries', \
     'r_jena' : '/jena_queries', \
     'r_virtuoso' : '/virtuoso_queries', \
     'r_4store' : '/4store_queries'
@@ -203,20 +204,15 @@ def gather_data_rdf_dms(dms, actions = ["load", "query_hot", "query_cold"]):
 
         run_id = 0
         query_name = ""
-        name_flag = True
         for each in all_lines:
-            if each[0]=="*":
-                run_id = 0
-                name_flag = True
-                continue;
-            if name_flag:
-                query_name = each.strip()
-                name_flag = False
-            else:
+            try:
+                m = float(each.split("\t")[2])
                 run_id+=1
                 csv_query.append([directory_maps[dms], str(run_id), "query_cold", query_name, \
                         each.strip().split("\t")[2]])
-
+            except:
+                query_name = each.strip()
+                run_id = 0
         logger.info("Succesfuly processed the query_cold_logs.log file for %s" % (dms))
     
 
@@ -232,17 +228,14 @@ def gather_data_rdf_dms(dms, actions = ["load", "query_hot", "query_cold"]):
         query_name = ""
         name_flag = True
         for each in all_lines:
-            if each[0]=="*":
-                run_id = 0
-                name_flag = True
-                continue;
-            if name_flag:
-                query_name = each.strip()
-                name_flag = False
-            else:
+            try:
+                m = float(each.split("\t")[2])
                 run_id+=1
                 csv_query.append([directory_maps[dms], str(run_id), "query_hot", query_name, \
                         each.strip().split("\t")[2]])
+            except:
+                query_name = each.strip()
+                run_id = 0
 
         logger.info("Succesfuly processed the query_hot_logs.log file for %s" % (dms))
             
@@ -389,10 +382,11 @@ def g_sparksee_with_perf(runs, xmlFile, actions = ["load", "query_hot", "query_c
 
         #Querying the database
 
-    if hot_query_flag:
+    if hot_query_flag or cold_query_flag:
         load_command = "/scripts/sparksee/SparkseeQueryPerf_load.sh /tmp/sparksee_perf.gdb %s" % (xmlFile)
         subprocess.call(load_command, shell = True)
 
+    if hot_query_flag:
         logger.info("Running the queries on hot cache for sparksee DMS")
         all_queries = glob.glob("/gremlin_query_perf/sparksee_*");
         for each in range(runs):
@@ -687,7 +681,7 @@ def return_rdf3x_valid_queries(queryLocation, datafileLocation):
     for each in l:
         command = "/gh-rdf3x/bin/rdf3xquery /tmp/query_check %s > temp 2> temp" % (each)
         subprocess.call(command, shell = True)
-        content = open("temp", "r").read()
+        content = io.open("temp", "r", encoding = "utf-8").read()
         if "parse error: projection required after select" not in content:
             valid_query.append(each)
             logger.info("%s is valid for rdf3x" % (each))
@@ -723,13 +717,12 @@ def r_rdf3x_with_perf(runs, queryLocations, dataFile, actions = ["load", "query_
             subprocess.call("rm -r /tmp/*", shell = True)
 
 
-    all_valid_queries = None
+    all_valid_queries = glob.glob("/rdf3x_queries/*.sparql")
+           
     if query_hot_flag or query_cold_flag:
         load_command = "/scripts/rdf3x/RDF3xLoadPerf.sh /tmp rdf3x_graph %s /dev/null" % (dataFile)
         subprocess.call(load_command, shell = True)
-        all_valid_queries = return_rdf3x_valid_queries(queryLocations, dataFile)
-        print("Inside RDF3x and the valid queries are :", all_valid_queries)
-
+    
     if query_cold_flag:
         for each_command in all_valid_queries:
             name_of_file = each_command.split("/")[-1].split(".")[0]
@@ -1220,7 +1213,12 @@ def r_virtuoso_with_perf(runs, queryLocation, dataFileLocation, actions = ["load
                 command = "/scripts/virtuoso/virtuoso_execute_cold_perf.sh /usr/local/virtuoso-opensource/bin/isql /var/log/virtuoso/usr_time_query_cold_logs.log %s" % (each_command)
                 run_perf(command, "/var/log/virtuoso/query_cold_logs_perf.log.%s" %(name_of_file), clear_cache = True, epilogue = epilogue)
 
+    if query_hot_flag or query_cold_flag:
+        cleanup = ["killall -v virtuoso-t", "sleep 10", "rm /scripts/virtuoso/virtuoso.db /scripts/virtuoso/virtuoso.log /scripts/virtuoso/virtuoso.lck /scripts/virtuoso/virtuoso.trx /scripts/virtuoso/virtuoso.pxa /scripts/virtuoso/virtuoso-temp.db /scripts/virtuoso/virtuoso-temp.trx"]
 
+        for each in cleanup:
+            subprocess.call(each, shell = True)
+         
 def create_log_files(list_to_benchmark):
     """This function is used to create empty log files.
     list_to_benchmark : list of DMS that would be benchmarked."""
@@ -1254,7 +1252,7 @@ def get_name_of_file(file_location):
     except Exception as e:
         return file_location
 
-def generate_rdf_queries(rdf_query_location):
+def generate_rdf_queries(rdf_query_location, dataFile):
     """This function will generate SPARQL query file for the 
     Virtuoso RDF Model, Apache Jena, and the 4store DMSs
     rdf_query_location : Where the initial Sparql Queries are provided by the user"""
@@ -1264,6 +1262,15 @@ def generate_rdf_queries(rdf_query_location):
     #os.mkdir("/virtuoso_queries")
     #os.mkdir("/jena_queries")
     #os.mkdir("/4store_queries")
+
+    
+    all_valid_queries = return_rdf3x_valid_queries(rdf_query_location, dataFile)
+    for each in all_valid_queries:
+        query_content = open(each, "r").read()
+        f = open("/rdf3x_queries/" + each.split("/")[-1], "w")
+        f.write(query_content)
+        f.close() 
+
     all_sparql = glob.glob(rdf_query_location + "/*.sparql")
     for each in all_sparql:
         new_file = open("/virtuoso_queries/" + get_name_of_file(each), "w")
@@ -1619,7 +1626,7 @@ x.shutdown()""")
 
     logger.info("*"*80)
 
-def generate_gremlin_query_for_perf(graph_queries_directory):
+def generate_gremlin_query_for_perf(graph_queries_directory, runs):
     """This function generates individual groovy file for each query to
     run them using the perf based tool for all the graph based DMS.
     graph_queries_directory : This is the initial location where all the gremlin queries 
@@ -2171,10 +2178,11 @@ if __name__ == "__main__":
 #        create_csv_from_logs("graph.load.logs", "graph.query.logs", graph_based, True)
     if args["rdf"]:
         set_java_path(java8 = True)
-        generate_rdf_queries(args['rdf_queries'])
         name_of_graph = glob.glob(args['rdf_datafile'] + "/*.nt")
         name_of_graph = name_of_graph[0]
         print(name_of_graph)
+
+        generate_rdf_queries(args['rdf_queries'], name_of_graph)
 
         if "r_virtuoso" in final_list:
             print("Benchmarking Virtuoso")
@@ -2188,7 +2196,7 @@ if __name__ == "__main__":
 
         if "r_rdf3x" in final_list:
             print("Benchmarking RDF3x")
-            r_rdf3x_with_perf(total_runs, args['rdf_queries'], name_of_graph, actions = benchmark_actions)
+            r_rdf3x_with_perf(total_runs, "/rdf3x_queries", name_of_graph, actions = benchmark_actions)
 
         if "r_4store" in final_list:
             print("Benchmarking 4store")
