@@ -95,6 +95,9 @@ RUN wget http://mirror.fibergrid.in/apache/tinkerpop/3.2.4/apache-tinkerpop-grem
 RUN unzip apache-tinkerpop-gremlin-console-3.2.4-bin.zip
 RUN mv apache-tinkerpop-gremlin-console-3.2.4 gremlin-groovy-3
 
+RUN apt-get install -y  python3-pandas
+RUN apt-get install -y python3-matplotlib
+
 # create directory for gh-rdf3x logs
 RUN mkdir /var/log/rdf3x
 
@@ -203,12 +206,11 @@ RUN mkdir /gremlin_query_perf
 RUN mkdir /virtuoso_queries
 RUN mkdir /jena_queries
 RUN mkdir /4store_queries
-ADD ./run_script.py ./
+RUN mkdir /rdf3x_queries
 
 #Adding plotting script here
-RUN apt-get install -y  python3-pandas
-RUN apt-get install -y python3-matplotlib
 ADD ./plot_script.py ./
+ADD ./run_script.py ./
 
 #ADD ./orient_gremlin.sh /orientdb/bin/gremlin.sh
 #ADD ./gremlin_gremlin.sh /gremlin_groovy/bin/gremlin.sh
