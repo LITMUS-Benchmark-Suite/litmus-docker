@@ -682,7 +682,7 @@ def return_rdf3x_valid_queries(queryLocation, datafileLocation):
         command = "/gh-rdf3x/bin/rdf3xquery /tmp/query_check %s > temp 2> temp" % (each)
         subprocess.call(command, shell = True)
         content = io.open("temp", "r", encoding = "utf-8").read()
-        if "parse error: projection required after select" not in content:
+        if "parse error:" not in content:
             valid_query.append(each)
             logger.info("%s is valid for rdf3x" % (each))
         else:
@@ -1626,7 +1626,7 @@ x.shutdown()""")
 
     logger.info("*"*80)
 
-def generate_gremlin_query_for_perf(graph_queries_directory, runs):
+def generate_gremlin_query_for_perf(graph_queries_directory, runs = None):
     """This function generates individual groovy file for each query to
     run them using the perf based tool for all the graph based DMS.
     graph_queries_directory : This is the initial location where all the gremlin queries 
@@ -1647,6 +1647,7 @@ s = System.currentTimeMillis();\n"""%(name_of_file));
         sparksee_filehandler.write(open(each, "r").read() + "\n")
         sparksee_filehandler.write("println (System.currentTimeMillis() - s);")
         sparksee_filehandler.close()
+
 
         tinker_filehandler = open(base + "tinker_" + name_of_file + ".groovy", "w")
         tinker_filehandler.write('x = new TinkerGraph("/tmp/tinker_perf");\n')
