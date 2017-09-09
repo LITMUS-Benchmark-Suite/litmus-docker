@@ -44,17 +44,18 @@ RUN git clone https://github.com/gh-rdf3x/gh-rdf3x.git \
   #  && make install
 
 # Install Gremlin Groovy for sparksee
-RUN ADD ./gremlin-groovy-2.6.0.zip ./
+ADD ./gremlin-groovy-2.6.0.zip ./
 RUN unzip gremlin-groovy-2.6.0.zip
 RUN mv gremlin-groovy-2.6.0 gremlin-groovy
 
 # Install Orient
-RUN ADD download.php?file=orientdb-community-2.1.3.tar.gz /
+RUN wget https://orientdb.com/download.php?file=orientdb-community-2.1.3.tar.gz
+RUN ls
 RUN tar -xf download.php?file=orientdb-community-2.1.3.tar.gz -C /
 RUN mv /orientdb-community-2.1.3 /orientdb
 
 # Install Apache Jena
-RUN ADD ./apache-jena-3.2.0.zip /
+ADD ./apache-jena-3.2.0.zip /
 RUN unzip apache-jena-3.2.0.zip
 
 #Installing open link virtuoso
@@ -91,7 +92,7 @@ RUN apt-get -y update
 RUN apt-get -y upgrade
 RUN apt-get install -y openjdk-7-jdk
 
-RUN ADD ./apache-tinkerpop-gremlin-console-3.2.4-bin.zip ./
+ADD ./apache-tinkerpop-gremlin-console-3.2.4-bin.zip ./
 RUN unzip apache-tinkerpop-gremlin-console-3.2.4-bin.zip
 RUN mv apache-tinkerpop-gremlin-console-3.2.4 gremlin-groovy-3
 
