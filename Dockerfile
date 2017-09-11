@@ -203,7 +203,7 @@ RUN mkdir /gremlin_query_perf
 
 # create folder only for gremlin3
 RUN mkdir /tinker3_query_perf
-ADD ./tinker3_queries ./tinker3_query_perf
+ADD ./tinker3_queries/* ./tinker3_query_perf/
 
 
 # copying all the scripts
