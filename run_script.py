@@ -504,7 +504,7 @@ def g_tinker_3_with_perf(runs, xmlFile, actions = ["load", "query_hot", "query_c
 
 
     if hot_query_flag:
-        all_queries = glob.glob("/gremlin_query_perf/tinker3_*");
+        all_queries = glob.glob("/tinker3_query_perf/*");
         logger.info("Running the queries on TinkerGraph on hot cache")
 
         for each in range(runs):
