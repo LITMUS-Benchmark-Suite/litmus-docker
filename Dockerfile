@@ -201,6 +201,11 @@ ADD ./gremlin_query/* /gremlin_query/
 # create folder for gremlin query for perf
 RUN mkdir /gremlin_query_perf
 
+# create folder only for gremlin3
+RUN mkdir /tinker3_query_perf
+ADD ./tinker3_queries ./tinker3_query_perf
+
+
 # copying all the scripts
 #ADD ./hello_world.py ./
 
