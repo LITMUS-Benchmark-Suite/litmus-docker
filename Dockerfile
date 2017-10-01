@@ -7,6 +7,7 @@ LABEL maintainer2 "harsh9t@gmail.com"
 RUN apt-get update && apt-get install -y \
             apt-transport-https \
 	    git \
+	    pkg-config \
             make \
             gcc-4.7 \
             build-essential g++ \
