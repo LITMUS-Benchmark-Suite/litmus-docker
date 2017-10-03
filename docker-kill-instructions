@@ -1,0 +1,7 @@
+# In case you want to kill all dockers and build from scratch, execute the following commands (in the same order)
+
+## WARNING! This will kill and remove all running dockers and their images. DO NOT USE IF OTHER DOCKERS ARE ALSO RUNNING WHICH YOU DO NOT INTEND TO KILL!
+
+- sudo docker stop $(sudo docker ps -a -q)
+- sudo docker rm $(sudo docker ps -a -q)
+- sudo docker rmi $(sudo docker images -q)
